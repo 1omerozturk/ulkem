@@ -11,6 +11,12 @@ import Animated, {
   FadeInDown,
   FadeInUp,
   SlideInUp,
+  FadeInRight,
+  FadeInLeft,
+  FadeOut,
+  SlideInDown,
+  ZoomIn,
+  ZoomOut,
 } from "react-native-reanimated";
 import Lottie from "lottie-react-native";
 import citiesData from "../../model/data.json";
@@ -32,30 +38,75 @@ export default function HomeScreen() {
   const progressAnim = useSharedValue(0);
   const confettiRef = useRef(null);
 
-  const generateQuestions = () => {
+  const generatePlateQuestions = () => {
     const shuffled = [...citiesData.data].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 10).map((city) => {
-      const wrongOptions = citiesData.data
-        .filter((c) => c.id !== city.id)
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 3)
-        .map((c) => c.name);
+    const selectedCities = new Set(); // Seçilen şehirleri takip eden küme
 
-      const options = [...wrongOptions, city.name].sort(
-        () => 0.5 - Math.random()
-      );
+    return shuffled
+      .filter((city) => {
+        if (selectedCities.has(city.id)) return false; // Aynı şehir tekrar eklenmesin
+        selectedCities.add(city.id);
+        return true;
+      })
+      .slice(0, 10)
+      .map((city) => {
+        const wrongOptions = citiesData.data
+          .filter((c) => c.id !== city.id)
+          .sort(() => 0.5 - Math.random())
+          .map((c) => c.name);
 
-      return {
-        city: city.name,
-        plate: city.id.toString(),
-        options,
-        correctAnswer: options.indexOf(city.name),
-      };
-    });
+        const uniqueOptions = new Set([city.name]); // Seçeneklerin benzersiz olmasını sağla
+
+        wrongOptions.forEach((option) => {
+          if (uniqueOptions.size < 4) uniqueOptions.add(option); // Aynı seçenek eklenmesin
+        });
+
+        const options = [...uniqueOptions].sort(() => 0.5 - Math.random());
+
+        return {
+          city: city.name,
+          plate: city.id.toString(),
+          options,
+          correctAnswer: options.indexOf(city.name),
+        };
+      });
+  };
+
+  const generateRegionQuestions = () => {
+    const shuffled = [...citiesData.data].sort(() => 0.5 - Math.random());
+    const selectedRegions = new Set(); // Seçilen bölgeleri takip eden küme
+
+    return shuffled
+      .filter((city) => {
+        if (selectedRegions.has(city.region.tr)) return false; // Aynı bölge tekrar eklenmesin
+        selectedRegions.add(city.region.tr);
+        return true;
+      })
+      .slice(0, 10)
+      .map((city) => {
+        const wrongOptions = citiesData.data
+          .filter((c) => c.region.tr !== city.region.tr)
+          .sort(() => 0.5 - Math.random())
+          .map((c) => c.region.tr);
+
+        const uniqueOptions = new Set([city.region.tr]); // Seçeneklerin benzersiz olmasını sağla
+
+        wrongOptions.forEach((option) => {
+          if (uniqueOptions.size < 4) uniqueOptions.add(option);
+        });
+
+        const options = [...uniqueOptions].sort(() => 0.5 - Math.random());
+
+        return {
+          city: city.name,
+          options,
+          correctAnswer: options.indexOf(city.region.tr),
+        };
+      });
   };
 
   const startGame = () => {
-    const newQuestions = generateQuestions();
+    const newQuestions = generateRegionQuestions();
     setQuestions(newQuestions);
     setGameStarted(true);
     setScore(0);
@@ -186,8 +237,28 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <Animated.Text
+          key={currentQuestion}
+          entering={SlideInDown.delay(100)
+            .springify()
+            .damping(15)
+            .stiffness(120)}
+          exiting={FadeOut.duration(300).easing(Easing.inOut(Easing.quad))}
+          style={styles.questionCounter}
+        >
+          {currentQuestion + 1}
+          <Text>{" / " + questions.length}</Text>
+        </Animated.Text>
+
         <Text style={styles.scoreText}>Puan: {score}</Text>
-        <Text style={styles.timerText}>{timeLeft}</Text>
+
+        <Animated.View
+          entering={ZoomIn.duration(500)}
+          exiting={ZoomOut.duration(300)}
+          style={styles.timerContainer}
+        >
+          <Text style={styles.timerText}>{timeLeft}</Text>
+        </Animated.View>
       </View>
 
       <View style={styles.progressBarContainer}>
@@ -201,14 +272,19 @@ export default function HomeScreen() {
 
       <Animated.View
         key={`question-${currentQuestion}`}
-        entering={SlideInUp.delay(100)}
+        entering={SlideInUp.delay(100).springify().damping(20).stiffness(150)}
+        exiting={FadeOut.duration(300).easing(Easing.inOut(Easing.quad))}
         style={styles.questionContainer}
       >
         <Text style={styles.questionText}>
           <Text style={styles.plateCode}>
-            {questions[currentQuestion]?.plate}
+            {questions[currentQuestion]?.plate
+              ? questions[currentQuestion].plate
+              : questions[currentQuestion].city}
           </Text>{" "}
-          plaka kodu hangi şehre aittir?
+          {questions[currentQuestion]?.plate
+            ? "plaka kodu hangi ilimize aittir?"
+            : "ili hangi bölgemizdedir?"}
         </Text>
       </Animated.View>
 
@@ -224,31 +300,68 @@ export default function HomeScreen() {
           }
 
           return (
-            <TouchableOpacity
-              onPress={() => handleAnswer(index)}
-              disabled={isAnswered}
-              key={index}
-              style={[styles.optionButton, { backgroundColor: bgColor }]}
+            <Animated.View
+              key={`${questions[currentQuestion]?.city}-${index}`}
+              entering={
+                index % 2 === 0
+                  ? FadeInLeft.duration(400)
+                      .springify()
+                      .damping(20)
+                      .stiffness(150)
+                  : FadeInRight.duration(400)
+                      .springify()
+                      .damping(20)
+                      .stiffness(150)
+              }
+              exiting={FadeOut.duration(300).easing(Easing.inOut(Easing.linear))}
             >
-              <View style={styles.optionTouchable}>
-                <View style={styles.optionView}>
-                  <Text style={styles.alphabetText}> {alphabet[index]}.</Text>
-                  <Text style={styles.optionText}>{option}</Text>
-                </View>
-                {isSelected && (
-                  <Lottie
-                    source={
-                      isCorrect
-                        ? require(`../../assets/lottie/success2.json`)
-                        : require(`../../assets/lottie/error2.json`)
-                    }
-                    autoPlay
-                    loop={false}
-                    style={styles.optionLottie}
-                  />
-                )}
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => handleAnswer(index)}
+                disabled={isAnswered}
+                key={index}
+                style={[
+                  styles.optionButton,
+                  {
+                    backgroundColor: isAnswered
+                      ? isCorrect
+                        ? "#4CAF50" // Doğru cevap yeşil
+                        : isSelected
+                        ? "#F44336" // Yanlış cevap kırmızı
+                        : COLORS.cardBackground
+                      : COLORS.cardBackground,
+                    transform: [{ scale: isSelected ? 1.05 : 1 }], // Seçildiğinde hafif büyütme efekti
+                  },
+                ]}
+              >
+                <Animated.View
+                  entering={FadeIn.duration(300)}
+                  exiting={FadeOut.duration(300)}
+                  style={styles.optionTouchable}
+                >
+                  <View style={styles.optionView}>
+                    <Text style={styles.alphabetText}>
+                      {alphabet[index] + ".)"}
+                    </Text>
+                    <Text style={styles.optionText}>{option}</Text>
+                  </View>
+
+                  {isSelected && (
+                    <Lottie
+                      speed={1.75}
+                      source={
+                        isCorrect
+                          ? require(`../../assets/lottie/success2.json`)
+                          : require(`../../assets/lottie/error2.json`)
+                      }
+                      autoPlay
+                      loop={false}
+                      style={styles.optionLottie}
+                    />
+                  )}
+                </Animated.View>
+              </TouchableOpacity>
+            </Animated.View>
           );
         })}
       </View>

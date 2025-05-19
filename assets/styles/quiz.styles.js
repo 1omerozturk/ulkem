@@ -48,18 +48,39 @@ export const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    alignItems: 'center', // Daha iyi hizalama
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: COLORS.background, // Arka plan rengi
+    elevation: 5, // Android için gölge efekti
+    shadowColor: '#000', // iOS için gölge efekti
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   scoreText: {
-    fontSize: 18,
+    fontSize: 20,
     color: COLORS.textPrimary,
     fontWeight: 'bold',
   },
+  questionCounter: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  timerContainer: {
+    borderRadius: 20,
+    backgroundColor: COLORS.error,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
   timerText: {
     fontSize: 18,
-    color: COLORS.primary,
+    color: '#fff',
     fontWeight: 'bold',
+    textAlign: 'center',
   },
+
   progressBarContainer: {
     height: 10,
     backgroundColor: COLORS.border,
@@ -94,27 +115,30 @@ export const styles = StyleSheet.create({
     fontSize: 26,
     color: COLORS.primary,
   },
-  optionsContainer: {
-    flex: 1,
-  },
+  optionsContainer: {},
   optionButton: {
     backgroundColor: COLORS.cardBackground,
-    padding: 20,
+    paddingHorizontal: 15, // Daha dengeli padding
+    paddingVertical: 12, // Daha kompakt yapı
     borderRadius: 12,
-    marginBottom: 20,
-    elevation: 3,
+    marginBottom: 15, // Daha az boşluk
+    elevation: 5,
     overflow: 'hidden',
+    flexDirection: 'row', // İçerikleri yatay hizala
+    alignItems: 'center', // Dikey hizalamayı düzelt
+    justifyContent: 'space-between', // İçerikleri dengeli dağıt
+    transition: 'background-color 0.3s ease-in-out',
   },
   optionTouchable: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flex: 1, // İçeriklerin esnek olmasını sağla
   },
   optionView: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
     alignItems: 'center',
-    columnGap: 20,
+    gap: 10, // Daha az boşluk
   },
   alphabetText: {
     fontSize: 18,
@@ -125,11 +149,15 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     color: COLORS.textPrimary,
     textAlign: 'left',
+    flexShrink: 1, // Uzun metinlerin taşmasını önle
   },
   optionLottie: {
-    width: 25,
-    height: 25,
+    width: 30, // Daha kompakt animasyon
+    height: 30,
+    position: 'absolute', // Kaymayı önlemek için sabitle
+    right: 10, // Konumu ayarla
   },
+
   resultContainer: {
     flex: 1,
     backgroundColor: COLORS.background,
