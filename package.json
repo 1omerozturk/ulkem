@@ -24,12 +24,14 @@
     "expo-image": "~2.1.7",
     "expo-linking": "~7.1.5",
     "expo-router": "~5.0.6",
+    "expo-secure-store": "~14.2.3",
     "expo-splash-screen": "~0.30.8",
     "expo-sqlite": "~15.2.10",
     "expo-status-bar": "~2.2.3",
     "expo-symbols": "~0.4.4",
     "expo-system-ui": "~5.0.7",
     "expo-web-browser": "~14.1.6",
+    "lottie-react-native": "7.2.2",
     "moment": "^2.30.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
@@ -42,8 +44,7 @@
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
     "zustand": "^5.0.4",
-    "expo-secure-store": "~14.2.3",
-    "lottie-react-native": "7.2.2"
+    "expo-linear-gradient": "~14.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

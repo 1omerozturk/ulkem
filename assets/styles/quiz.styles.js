@@ -82,17 +82,23 @@ export const styles = StyleSheet.create({
   },
 
   progressBarContainer: {
-    height: 10,
-    backgroundColor: COLORS.border,
-    borderRadius: 5,
+    height: 14,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 7,
     marginBottom: 20,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: 5,
+    borderRadius: 7,
+    backgroundColor: 'transparent', // gradient ekleyeceğiz
   },
+
   questionContainer: {
     backgroundColor: COLORS.cardBackground,
     padding: 25,
@@ -113,9 +119,15 @@ export const styles = StyleSheet.create({
   plateCode: {
     fontWeight: '700',
     fontSize: 26,
-    color: COLORS.primary,
+    color: COLORS.textPrimary,
   },
-  optionsContainer: {},
+  positiveQuestion: {
+    color: 'green',
+  },
+
+  negativeQuestion: {
+    color: 'red',
+  },
   optionButton: {
     backgroundColor: COLORS.cardBackground,
     paddingHorizontal: 15, // Daha dengeli padding
@@ -208,6 +220,19 @@ export const styles = StyleSheet.create({
   },
   restartButtonText: {
     color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  backButton: {
+    marginTop:20,
+    backgroundColor: COLORS.textDark,
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+    elevation: 5,
+  },
+  backButtonText: {
+    color: COLORS.primary,
     fontSize: 18,
     fontWeight: 'bold',
   },

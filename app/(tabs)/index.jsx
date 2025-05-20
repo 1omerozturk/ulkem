@@ -1,370 +1,237 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { View, Text, TouchableOpacity, Dimensions } from "react-native";
-import Animated, {
-  FadeIn,
-  useSharedValue,
-  withSpring,
-  withTiming,
-  useAnimatedStyle,
-  Easing,
-  runOnJS,
-  FadeInDown,
-  FadeInUp,
-  SlideInUp,
-  FadeInRight,
-  FadeInLeft,
-  FadeOut,
-  SlideInDown,
-  ZoomIn,
-  ZoomOut,
-} from "react-native-reanimated";
-import Lottie from "lottie-react-native";
-import citiesData from "../../model/data.json";
 import { COLORS } from "@/constants/Colors";
-import { styles } from "../../assets/styles/quiz.styles";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  Animated,
+  FlatList,
+  Image,
+  ImageBackground,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const { width } = Dimensions.get("window");
-
-export default function HomeScreen() {
-  const [gameStarted, setGameStarted] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [score, setScore] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [isAnswered, setIsAnswered] = useState(false);
-  const [questions, setQuestions] = useState([]);
-  const [timeLeft, setTimeLeft] = useState(20);
-
-  const timerRef = useRef(null);
-  const progressAnim = useSharedValue(0);
-  const confettiRef = useRef(null);
-
-  const generatePlateQuestions = () => {
-    const shuffled = [...citiesData.data].sort(() => 0.5 - Math.random());
-    const selectedCities = new Set(); // Seçilen şehirleri takip eden küme
-
-    return shuffled
-      .filter((city) => {
-        if (selectedCities.has(city.id)) return false; // Aynı şehir tekrar eklenmesin
-        selectedCities.add(city.id);
-        return true;
-      })
-      .slice(0, 10)
-      .map((city) => {
-        const wrongOptions = citiesData.data
-          .filter((c) => c.id !== city.id)
-          .sort(() => 0.5 - Math.random())
-          .map((c) => c.name);
-
-        const uniqueOptions = new Set([city.name]); // Seçeneklerin benzersiz olmasını sağla
-
-        wrongOptions.forEach((option) => {
-          if (uniqueOptions.size < 4) uniqueOptions.add(option); // Aynı seçenek eklenmesin
-        });
-
-        const options = [...uniqueOptions].sort(() => 0.5 - Math.random());
-
-        return {
-          city: city.name,
-          plate: city.id.toString(),
-          options,
-          correctAnswer: options.indexOf(city.name),
-        };
-      });
-  };
-
-  const generateRegionQuestions = () => {
-    const shuffled = [...citiesData.data].sort(() => 0.5 - Math.random());
-    const selectedRegions = new Set(); // Seçilen bölgeleri takip eden küme
-
-    return shuffled
-      .filter((city) => {
-        if (selectedRegions.has(city.region.tr)) return false; // Aynı bölge tekrar eklenmesin
-        selectedRegions.add(city.region.tr);
-        return true;
-      })
-      .slice(0, 10)
-      .map((city) => {
-        const wrongOptions = citiesData.data
-          .filter((c) => c.region.tr !== city.region.tr)
-          .sort(() => 0.5 - Math.random())
-          .map((c) => c.region.tr);
-
-        const uniqueOptions = new Set([city.region.tr]); // Seçeneklerin benzersiz olmasını sağla
-
-        wrongOptions.forEach((option) => {
-          if (uniqueOptions.size < 4) uniqueOptions.add(option);
-        });
-
-        const options = [...uniqueOptions].sort(() => 0.5 - Math.random());
-
-        return {
-          city: city.name,
-          options,
-          correctAnswer: options.indexOf(city.region.tr),
-        };
-      });
-  };
-
-  const startGame = () => {
-    const newQuestions = generateRegionQuestions();
-    setQuestions(newQuestions);
-    setGameStarted(true);
-    setScore(0);
-    setCurrentQuestion(0);
-    setSelectedAnswer(null);
-    setIsAnswered(false);
-    setTimeLeft(20);
-    progressAnim.value = 0;
-  };
-
-  const resetTimer = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setTimeLeft(20);
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          runOnJS(nextQuestion)();
-          return 20;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const nextQuestion = useCallback(() => {
-    setSelectedAnswer(null);
-    setIsAnswered(false);
-    setCurrentQuestion((prev) => prev + 1);
-    setTimeLeft(20);
-    progressAnim.value = 0;
-  }, []);
-
-  const handleAnswer = (index) => {
-    if (isAnswered) return;
-
-    setSelectedAnswer(index);
-    setIsAnswered(true);
-
-    if (index === questions[currentQuestion]?.correctAnswer) {
-      setScore((prev) => prev + 10);
-      confettiRef.current?.play();
-    }
-
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    setTimeout(() => {
-      nextQuestion();
-    }, 1500);
-  };
+export default function QuizHome() {
+  const router = useRouter();
+  const [profile, setProfile] = useState("");
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const fadeAnim = new Animated.Value(0);
 
   useEffect(() => {
-    if (gameStarted && questions.length && currentQuestion < questions.length) {
-      resetTimer();
-      progressAnim.value = withTiming(1, { duration: 20000 });
-    }
-  }, [gameStarted, currentQuestion]);
-
-  useEffect(() => {
-    return () => clearInterval(timerRef.current);
+    const profileImage = `https://api.dicebear.com/7.x/avataaars/png?seed=new`;
+    setProfile(profileImage);
   }, []);
 
-  if (!gameStarted) {
-    return (
-      <Animated.View
-        style={styles.startContainer}
-        entering={FadeIn.duration(500)}
+  const renderGrid = ({ item }) => (
+    <Animated.View style={styles.gridView}>
+      <TouchableOpacity
+        onPress={() => router.push(item?.url)}
+        activeOpacity={0.85}
+        style={styles.grid}
       >
-        <Lottie
-          source={require("../../assets/lottie/quiz.json")}
-          autoPlay
-          loop
-          style={styles.lottieStart}
+        <Image
+          tintColor={COLORS.primary}
+          style={styles.gridImage}
+          height={50}
+          width={50}
+          source={`${item.path}`}
         />
-        <Text style={styles.startTitle}>Plaka Bilgi Yarışması</Text>
-        <Text style={styles.startSubtitle}>
-          Türkiye'nin şehir plakalarını ne kadar iyi biliyorsun?
-        </Text>
-        <TouchableOpacity style={styles.startButton} onPress={startGame}>
-          <Text style={styles.startButtonText}>BAŞLA</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  }
-
-  if (!questions.length) {
-    return (
-      <View style={styles.container}>
-        <Text>Yükleniyor...</Text>
-      </View>
-    );
-  }
-
-  if (currentQuestion >= questions.length) {
-    return (
-      <Animated.View
-        style={styles.resultContainer}
-        entering={FadeIn.duration(500)}
-      >
-        <Lottie
-          ref={confettiRef}
-          source={require("../../assets/lottie/confetti.json")}
-          autoPlay={score > 50}
-          loop={false}
-          style={styles.lottieConfetti}
+        <Image
+          tintColor={COLORS.white}
+          style={styles.gridImage}
+          height={50}
+          width={50}
+          source={`${item.path2}`}
         />
-        <Text style={styles.resultTitle}>Quiz Tamamlandı!</Text>
-        <View style={styles.scoreCircle}>
-          <Text style={styles.scoreText}>{score}</Text>
-          <Text style={styles.scoreLabel}>Puan</Text>
-        </View>
-        <Text style={styles.resultText}>
-          {score >= 80
-            ? "Mükemmel! 🎉"
-            : score >= 50
-            ? "İyi iş! 👍"
-            : "Daha çok çalışmalısın 😊"}
-        </Text>
-        <TouchableOpacity style={styles.restartButton} onPress={startGame}>
-          <Text style={styles.restartButtonText}>TEKRAR OYNA</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  }
+      </TouchableOpacity>
+      <Text style={styles.gridText}>{item.title}</Text>
+    </Animated.View>
+  );
 
-  const alphabet = ["A", "B", "C", "D", "E"];
+  const toggleSettings = () => {
+    setSettingsVisible(!settingsVisible);
+    Animated.timing(fadeAnim, {
+      toValue: settingsVisible ? 0 : 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Animated.Text
-          key={currentQuestion}
-          entering={SlideInDown.delay(100)
-            .springify()
-            .damping(15)
-            .stiffness(120)}
-          exiting={FadeOut.duration(300).easing(Easing.inOut(Easing.quad))}
-          style={styles.questionCounter}
-        >
-          {currentQuestion + 1}
-          <Text>{" / " + questions.length}</Text>
-        </Animated.Text>
+    <ImageBackground
+      source={require("@/assets/images/bg.jpg")}
+      style={styles.background}
+    >
+      <View style={styles.container}>
+        {/* Üst Header */}
+        <View style={styles.header}>
+          <Text style={styles.username}>Kullanıcı Adı</Text>
+          <Image
+            height={50}
+            width={50}
+            source={
+              profile
+                ? { uri: profile }
+                : require("@/assets/images/default-user.png")
+            }
+            style={styles.profileImage}
+          />
+          <Text style={styles.points}>Puan: 1200</Text>
+        </View>
 
-        <Text style={styles.scoreText}>Puan: {score}</Text>
-
-        <Animated.View
-          entering={ZoomIn.duration(500)}
-          exiting={ZoomOut.duration(300)}
-          style={styles.timerContainer}
-        >
-          <Text style={styles.timerText}>{timeLeft}</Text>
-        </Animated.View>
-      </View>
-
-      <View style={styles.progressBarContainer}>
-        <Animated.View
-          style={[
-            styles.progressBar,
-            { width: `${progressAnim.value * 100}%` },
+        {/* Grid Alanı */}
+        <FlatList
+          data={[
+            {
+              title: "İl - Plaka",
+              url: "quiz/plate",
+              path: require("@/assets/images/icons/city.png"),
+              path2: require("@/assets/images/plate.png"),
+            },
+            {
+              title: "İl - Bölge",
+              url: "quiz/region",
+              path: require("@/assets/images/icons/city.png"),
+              path2: require("@/assets/images/icons/country.png"),
+            },
+            {
+              title: "İl - İlçe",
+              url: "quiz/district",
+              path: require("@/assets/images/icons/city.png"),
+              path2: require("@/assets/images/icons/district.png"),
+            },
+            {
+              title: "İl - Alan Kodu",
+              url: "quiz/plate",
+              path: require("@/assets/images/icons/city.png"),
+              path2: require("@/assets/images/icons/phone.png"),
+            },
           ]}
+          renderItem={renderGrid}
+          numColumns={2}
+          keyExtractor={(item, index) => index.toString()}
+          contentContainerStyle={styles.gridContainer}
         />
-      </View>
 
-      <Animated.View
-        key={`question-${currentQuestion}`}
-        entering={SlideInUp.delay(100).springify().damping(20).stiffness(150)}
-        exiting={FadeOut.duration(300).easing(Easing.inOut(Easing.quad))}
-        style={styles.questionContainer}
-      >
-        <Text style={styles.questionText}>
-          <Text style={styles.plateCode}>
-            {questions[currentQuestion]?.plate
-              ? questions[currentQuestion].plate
-              : questions[currentQuestion].city}
-          </Text>{" "}
-          {questions[currentQuestion]?.plate
-            ? "plaka kodu hangi ilimize aittir?"
-            : "ili hangi bölgemizdedir?"}
-        </Text>
-      </Animated.View>
+        {/* Alt Navigasyon */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.iconButton}
+            onPress={() => console.log("İstatistikler Açıldı")}
+          >
+            <Ionicons name="stats-chart-outline" size={30} color="white" />
+          </TouchableOpacity>
 
-      <View style={styles.optionsContainer}>
-        {questions[currentQuestion]?.options.map((option, index) => {
-          const isCorrect = index === questions[currentQuestion]?.correctAnswer;
-          const isSelected = index === selectedAnswer;
+          <TouchableOpacity style={styles.iconButton} onPress={toggleSettings}>
+            <Ionicons name="settings-outline" size={30} color="white" />
+          </TouchableOpacity>
+        </View>
 
-          let bgColor = COLORS.cardBackground;
-          if (isAnswered) {
-            if (isCorrect) bgColor = "#4CAF50";
-            else if (isSelected) bgColor = "#F44336";
-          }
-
-          return (
-            <Animated.View
-              key={`${questions[currentQuestion]?.city}-${index}`}
-              entering={
-                index % 2 === 0
-                  ? FadeInLeft.duration(400)
-                      .springify()
-                      .damping(20)
-                      .stiffness(150)
-                  : FadeInRight.duration(400)
-                      .springify()
-                      .damping(20)
-                      .stiffness(150)
-              }
-              exiting={FadeOut.duration(300).easing(Easing.inOut(Easing.linear))}
-            >
+        {/* Ayarlar Modal */}
+        {/* <Modal visible={settingsVisible} animationType="fade">
+          <View style={styles.modalContainer}>
+            <Animated.View style={[styles.modalContent, { opacity: fadeAnim }]}>
+              <Text style={styles.modalText}>Ayarlar Menüsü</Text>
               <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => handleAnswer(index)}
-                disabled={isAnswered}
-                key={index}
-                style={[
-                  styles.optionButton,
-                  {
-                    backgroundColor: isAnswered
-                      ? isCorrect
-                        ? "#4CAF50" // Doğru cevap yeşil
-                        : isSelected
-                        ? "#F44336" // Yanlış cevap kırmızı
-                        : COLORS.cardBackground
-                      : COLORS.cardBackground,
-                    transform: [{ scale: isSelected ? 1.05 : 1 }], // Seçildiğinde hafif büyütme efekti
-                  },
-                ]}
+                onPress={toggleSettings}
+                style={styles.modalButton}
               >
-                <Animated.View
-                  entering={FadeIn.duration(300)}
-                  exiting={FadeOut.duration(300)}
-                  style={styles.optionTouchable}
-                >
-                  <View style={styles.optionView}>
-                    <Text style={styles.alphabetText}>
-                      {alphabet[index] + ".)"}
-                    </Text>
-                    <Text style={styles.optionText}>{option}</Text>
-                  </View>
-
-                  {isSelected && (
-                    <Lottie
-                      speed={1.75}
-                      source={
-                        isCorrect
-                          ? require(`../../assets/lottie/success2.json`)
-                          : require(`../../assets/lottie/error2.json`)
-                      }
-                      autoPlay
-                      loop={false}
-                      style={styles.optionLottie}
-                    />
-                  )}
-                </Animated.View>
+                <Text style={styles.modalButtonText}>Kapat</Text>
               </TouchableOpacity>
             </Animated.View>
-          );
-        })}
+          </View>
+        </Modal> */}
       </View>
-    </View>
+    </ImageBackground>
   );
 }
+
+const styles = StyleSheet.create({
+  background: { flex: 1, resizeMode: "cover" },
+  container: {
+    flex: 1,
+    flexDirection: "column",
+    alignSelf: "baseline",
+    backgroundColor: "transparent",
+    padding: 20,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 10,
+  },
+  username: { fontSize: 18, color: "white" },
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 50,
+    backgroundColor: COLORS.inputBackground,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    marginBottom: 15,
+  },
+  points: { fontSize: 18, color: "white" },
+  gridContainer: { alignItems: "center", margin: 10, marginVertical: "auto" },
+  gridView: {
+    flexDirection: "column",
+    rowGap: 10,
+    padding: 5,
+    paddingVertical: 20,
+    marginVertical: 10,
+    width: "50%",
+    height: 180,
+    justifyContent: "center",
+    alignContent: "center",
+    alignItems: "center",
+  },
+  grid: {
+    height: "100%",
+    width: "100%",
+    flexDirection: "row",
+    borderWidth: 3,
+    borderColor: COLORS.black,
+    borderRadius: 20,
+    backgroundColor: "transparent",
+    justifyContent: "space-between",
+    padding: 10,
+    alignItems: "center",
+  },
+  gridImage: {
+    width: 50,
+    height: 50,
+    backgroundColor: "transparent",
+    borderColor: COLORS.border,
+  },
+
+  gridText: { color: COLORS.white, fontSize: 20, fontWeight: "bold" },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+  },
+  iconButton: { padding: 10 },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    width: 300,
+    padding: 20,
+    backgroundColor: "transparent",
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalText: { fontSize: 20, fontWeight: "bold" },
+  modalButton: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: COLORS.primary,
+    borderRadius: 5,
+  },
+  modalButtonText: { color: "black", fontSize: 16 },
+});
