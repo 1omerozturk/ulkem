@@ -14,12 +14,13 @@ import Animated, {
   SlideInDown,
   ZoomIn,
   ZoomOut,
+  FadeOutUp,
 } from "react-native-reanimated";
 import Lottie from "lottie-react-native";
+import { styles } from "../assets/styles/quiz.styles";
 import { quizService } from "../service/quizService";
 import { COLORS } from "../constants/Colors";
-import { styles } from "../assets/styles/quiz.styles";
-import { router } from "expo-router";
+import ResultScreen from "./ResultScreen";
 
 export default function QuizScreen({ type }) {
   const [resetTimerKey, setResetTimerKey] = useState(0);
@@ -147,39 +148,11 @@ export default function QuizScreen({ type }) {
 
   if (currentQuestion >= questions.length) {
     return (
-      <Animated.View
-        style={styles.resultContainer}
-        entering={FadeIn.duration(500)}
-      >
-        <Lottie
-          ref={confettiRef}
-          source={require("../assets/lottie/confetti.json")}
-          autoPlay={score > 50}
-          loop={false}
-          style={styles.lottieConfetti}
-        />
-        <Text style={styles.resultTitle}>Quiz Tamamlandı!</Text>
-        <View style={styles.scoreCircle}>
-          <Text style={styles.scoreText}>{score}</Text>
-          <Text style={styles.scoreLabel}>Puan</Text>
-        </View>
-        <Text style={styles.resultText}>
-          {score >= 80
-            ? "Mükemmel! 🎉"
-            : score >= 50
-            ? "İyi iş! 👍"
-            : "Daha çok çalışmalısın 😊"}
-        </Text>
-        <TouchableOpacity style={styles.restartButton} onPress={startGame}>
-          <Text style={styles.restartButtonText}>TEKRAR OYNA</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>KATEGORİLER</Text>
-        </TouchableOpacity>
-      </Animated.View>
+      <ResultScreen
+        score={score}
+        startGame={startGame}
+        confettiRef={confettiRef}
+      />
     );
   }
 
@@ -187,145 +160,142 @@ export default function QuizScreen({ type }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Animated.Text
-          key={currentQuestion}
-          entering={SlideInDown.delay(100)
-            .springify()
-            .damping(15)
-            .stiffness(120)}
-          exiting={FadeOut.duration(300).easing(Easing.inOut(Easing.quad))}
-          style={styles.questionCounter}
-        >
-          {currentQuestion + 1}
-          <Text>{" / " + questions.length}</Text>
-        </Animated.Text>
-
-        <Text style={styles.scoreText}>Puan: {score}</Text>
-
-        <Animated.View
-          entering={ZoomIn.duration(500)}
-          exiting={ZoomOut.duration(300)}
-          style={styles.timerContainer}
-        >
-          <Text style={styles.timerText}>{timeLeft}</Text>
-        </Animated.View>
-      </View>
-
-      <View style={styles.progressBarContainer}>
-        <TimerBar duration={20000} resetTrigger={resetTimerKey} />
-      </View>
-
-      <Animated.View
-        key={`question-${currentQuestion}`}
-        entering={SlideInUp.delay(100).springify().damping(20).stiffness(150)}
-        exiting={FadeOut.duration(300).easing(Easing.inOut(Easing.quad))}
-        style={styles.questionContainer}
-      >
-        <Text style={styles.questionText}>
-          <Text style={styles.plateCode}>
-            {questions[currentQuestion]?.plate
-              ? questions[currentQuestion].plate
-              : questions[currentQuestion].city
-              ? questions[currentQuestion].city
-              : questions[currentQuestion].cityName}
-          </Text>{" "}
-          <Text
-            style={
-              questions[currentQuestion]?.type
-                ? styles.positiveQuestion
-                : styles.negativeQuestion
-            }
+      <View style={styles.headerView}>
+        <View style={styles.header}>
+          <Animated.Text
+            key={currentQuestion}
+            entering={SlideInDown.delay(100)
+              .springify()
+              .damping(15)
+              .stiffness(120)}
+            exiting={FadeOut.duration(300).easing(Easing.inOut(Easing.quad))}
+            style={styles.questionCounter}
           >
-            {questions[currentQuestion].question}
-          </Text>
-        </Text>
-      </Animated.View>
+            {currentQuestion + 1}
+            <Text>{" / " + questions.length}</Text>
+          </Animated.Text>
 
-      <View style={styles.optionsContainer}>
-        {questions[currentQuestion]?.options.map((option, index) => {
-          const isCorrect = index === questions[currentQuestion]?.correctAnswer;
-          const isSelected = index === selectedAnswer;
+          <Text style={styles.scoreText}>Puan: {score}</Text>
 
-          let bgColor = COLORS.cardBackground;
-          if (isAnswered) {
-            if (isCorrect) bgColor = "#4CAF50";
-            else if (isSelected) bgColor = "#F44336";
-          }
+          <Animated.View
+            entering={ZoomIn.duration(500)}
+            exiting={ZoomOut.duration(300)}
+            style={styles.timerContainer}
+          >
+            <Text style={styles.timerText}>{timeLeft}</Text>
+          </Animated.View>
+        </View>
 
-          return (
-            <Animated.View
-              key={`${
-                questions[currentQuestion]?.plate ??
-                questions[currentQuestion]?.city ??
-                questions[currentQuestion]?.cityName ??
-                "no-key"
-              }-${index}`}
-              entering={
-                index % 2 === 0
-                  ? FadeInLeft.duration(400)
-                      .springify()
-                      .damping(20)
-                      .stiffness(150)
-                  : FadeInRight.duration(400)
-                      .springify()
-                      .damping(20)
-                      .stiffness(150)
-              }
-              exiting={FadeOut.duration(300).easing(
-                Easing.inOut(Easing.linear)
-              )}
-            >
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => handleAnswer(index)}
-                disabled={isAnswered}
-                key={index}
-                style={[
-                  styles.optionButton,
-                  {
-                    backgroundColor: isAnswered
-                      ? isCorrect
-                        ? "#4CAF50" // Doğru cevap yeşil
-                        : isSelected
-                        ? "#F44336" // Yanlış cevap kırmızı
-                        : COLORS.cardBackground
-                      : COLORS.cardBackground,
-                    transform: [{ scale: isSelected ? 1.05 : 1 }], // Seçildiğinde hafif büyütme efekti
-                  },
-                ]}
-              >
-                <Animated.View
-                  entering={FadeIn.duration(300)}
-                  exiting={FadeOut.duration(300)}
-                  style={styles.optionTouchable}
-                >
-                  <View style={styles.optionView}>
-                    <Text style={styles.alphabetText}>
-                      {alphabet[index] + ".)"}
-                    </Text>
-                    <Text style={styles.optionText}>{option}</Text>
-                  </View>
-
-                  {isSelected && (
-                    <Lottie
-                      speed={1.75}
-                      source={
-                        isCorrect
-                          ? require(`../assets/lottie/success.json`)
-                          : require(`../assets/lottie/error.json`)
-                      }
-                      autoPlay
-                      loop={false}
-                      style={styles.optionLottie}
-                    />
-                  )}
-                </Animated.View>
-              </TouchableOpacity>
-            </Animated.View>
-          );
-        })}
+        <View style={styles.progressBarContainer}>
+          <TimerBar duration={20000} resetTrigger={resetTimerKey} />
+        </View>
       </View>
+
+      <View>
+        <Animated.View
+          key={`question-${currentQuestion}`}
+          entering={SlideInUp.delay(100).springify().damping(20).stiffness(150)}
+          exiting={FadeOutUp.duration(400).easing(Easing.inOut(Easing.linear))}
+          style={styles.questionContainer}
+        >
+          <Text style={styles.questionText}>
+            <Text
+              style={
+                questions[currentQuestion]?.type === true
+                  ? styles.positiveQuestion
+                  : questions[currentQuestion]?.type === false
+                  ? styles.negativeQuestion
+                  : styles.questionText
+              }
+            >
+              {questions[currentQuestion]?.question}
+            </Text>
+          </Text>
+        </Animated.View>
+
+        <View style={styles.optionsContainer}>
+          {questions[currentQuestion]?.options.map((option, index) => {
+            const delay = 300;
+            const isCorrect =
+              index === questions[currentQuestion]?.correctAnswer;
+            const isSelected = index === selectedAnswer;
+
+            let bgColor = COLORS.cardBackground;
+            if (isAnswered) {
+              if (isCorrect) bgColor = "#4CAF50";
+              else if (isSelected) bgColor = "#F44336";
+            }
+
+            return (
+              <Animated.View
+                key={`${questions[currentQuestion].id + index}`}
+                entering={
+                  index % 2 === 0
+                    ? FadeInLeft.delay(delay * index)
+                        .springify()
+                        .damping(100)
+                        .stiffness(150)
+                    : FadeInRight.delay(delay * index)
+                        .springify()
+                        .damping(100)
+                        .stiffness(150)
+                }
+                exiting={FadeOut.duration(300).easing(
+                  Easing.inOut(Easing.linear)
+                )}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => handleAnswer(index)}
+                  disabled={isAnswered}
+                  key={index}
+                  style={[
+                    styles.optionButton,
+                    {
+                      backgroundColor: isAnswered
+                        ? isCorrect
+                          ? "#4CAF50" // Doğru cevap yeşil
+                          : isSelected
+                          ? "#F44336" // Yanlış cevap kırmızı
+                          : COLORS.cardBackground
+                        : COLORS.cardBackground,
+                      transform: [{ scale: isSelected ? 1.05 : 1 }], // Seçildiğinde hafif büyütme efekti
+                    },
+                  ]}
+                >
+                  <Animated.View
+                    entering={FadeIn.duration(300)}
+                    exiting={FadeOut.duration(300)}
+                    style={styles.optionTouchable}
+                  >
+                    <View style={styles.optionView}>
+                      <Text style={styles.alphabetText}>
+                        {alphabet[index] + ".)"}
+                      </Text>
+                      <Text style={styles.optionText}>{option}</Text>
+                    </View>
+
+                    {isSelected && (
+                      <Lottie
+                        speed={1.75}
+                        source={
+                          isCorrect
+                            ? require(`../assets/lottie/success.json`)
+                            : require(`../assets/lottie/error.json`)
+                        }
+                        autoPlay
+                        loop={false}
+                        style={styles.optionLottie}
+                      />
+                    )}
+                  </Animated.View>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          })}
+        </View>
+      </View>
+      <View style={styles.footer}></View>
     </View>
   );
 }

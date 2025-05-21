@@ -41,9 +41,15 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   container: {
+    flexDirection: 'column',
+    justifyContent: 'space-between',
     flex: 1,
     backgroundColor: COLORS.background,
     padding: 20,
+  },
+  headerView: {
+    flexDirection: 'column',
+    rowGap: 20,
   },
   header: {
     flexDirection: 'row',
@@ -57,6 +63,9 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
+  },
+  footer: {
+    marginTop: 150,
   },
   scoreText: {
     fontSize: 20,
@@ -131,7 +140,7 @@ export const styles = StyleSheet.create({
   optionButton: {
     backgroundColor: COLORS.cardBackground,
     paddingHorizontal: 15, // Daha dengeli padding
-    paddingVertical: 12, // Daha kompakt yapı
+    paddingVertical: 14, // Daha kompakt yapı
     borderRadius: 12,
     marginBottom: 15, // Daha az boşluk
     elevation: 5,
@@ -159,6 +168,7 @@ export const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 18,
+    fontWeight:'600',
     color: COLORS.textPrimary,
     textAlign: 'left',
     flexShrink: 1, // Uzun metinlerin taşmasını önle
@@ -224,7 +234,7 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   backButton: {
-    marginTop:20,
+    marginTop: 20,
     backgroundColor: COLORS.textDark,
     paddingVertical: 15,
     paddingHorizontal: 40,

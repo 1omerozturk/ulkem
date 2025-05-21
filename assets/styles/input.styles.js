@@ -1,9 +1,9 @@
 import { StyleSheet } from 'react-native'
-import COLORS from '../../constants/colors'
+import { COLORS } from '../../constants/Colors'
 
 const styles = StyleSheet.create({
   searchBarContainer: {
-    width:"auto",
+    width: 'auto',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.inputBackground,

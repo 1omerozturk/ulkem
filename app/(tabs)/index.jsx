@@ -32,17 +32,17 @@ export default function QuizHome() {
         style={styles.grid}
       >
         <Image
-          tintColor={COLORS.primary}
+          tintColor={COLORS.background}
           style={styles.gridImage}
-          height={50}
-          width={50}
+          height={60}
+          width={60}
           source={`${item.path}`}
         />
         <Image
-          tintColor={COLORS.white}
+          tintColor={COLORS.background}
           style={styles.gridImage}
-          height={50}
-          width={50}
+          height={60}
+          width={60}
           source={`${item.path2}`}
         />
       </TouchableOpacity>
