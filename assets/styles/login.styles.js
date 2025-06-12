@@ -1,6 +1,6 @@
 // styles/login.styles.js
 import { StyleSheet, Dimensions } from 'react-native'
-import {COLORS} from '../../constants/Colors'
+import { COLORS } from '../../constants/Colors'
 
 const { width } = Dimensions.get('window')
 
@@ -124,6 +124,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginRight: 5,
   },
+  error: { color: 'red', marginBottom: 10 },
   link: {
     color: COLORS.primary,
     fontWeight: '600',

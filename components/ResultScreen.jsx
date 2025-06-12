@@ -1,11 +1,29 @@
 import { View, Text, Animated, TouchableOpacity } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "expo-router";
 import Lottie from "lottie-react-native";
 import { styles } from "../assets/styles/quiz.styles";
 import { FadeIn } from "react-native-reanimated";
+import { useAuthStore } from "../store/authStore";
 
-export default function ResultScreen({ score, startGame, confettiRef }) {
+export default function ResultScreen({
+  score,
+  startGame,
+  confettiRef,
+  quizData,
+}) {
+  const { user, updateUserScore } = useAuthStore();
+
+  const handleUpdateUserStats = async () => {
+    if (!user) return;
+
+    await updateUserScore(score, quizData);
+  };
+
+  useEffect(() => {
+    handleUpdateUserStats();
+  }, [score]);
+
   const router = useRouter();
   return (
     <Animated.View
@@ -16,7 +34,7 @@ export default function ResultScreen({ score, startGame, confettiRef }) {
         ref={confettiRef}
         source={require("../assets/lottie/confetti.json")}
         autoPlay={score > 50}
-        loop={false}
+        loop={score > 50}
         style={styles.lottieConfetti}
       />
       <Text style={styles.resultTitle}>Quiz Tamamlandı!</Text>

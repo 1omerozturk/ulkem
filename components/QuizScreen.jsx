@@ -1,42 +1,54 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import TimerBar from "./TimerBar";
+import Lottie from "lottie-react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 import Animated, {
+  Easing,
   FadeIn,
+  FadeInLeft,
+  FadeInRight,
+  FadeOut,
+  FadeOutUp,
+  runOnJS,
+  SlideInDown,
+  SlideInUp,
   useSharedValue,
   withTiming,
-  Easing,
-  runOnJS,
-  SlideInUp,
-  FadeInRight,
-  FadeInLeft,
-  FadeOut,
-  SlideInDown,
   ZoomIn,
   ZoomOut,
-  FadeOutUp,
 } from "react-native-reanimated";
-import Lottie from "lottie-react-native";
 import { styles } from "../assets/styles/quiz.styles";
-import { quizService } from "../service/quizService";
 import { COLORS } from "../constants/Colors";
+import { quizService } from "../service/quizService";
 import ResultScreen from "./ResultScreen";
+import TimerBar from "./TimerBar";
+import { goBack } from "expo-router/build/global-state/routing";
+import { useAuthStore } from "../store/authStore";
 
 export default function QuizScreen({ type }) {
   const [resetTimerKey, setResetTimerKey] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [score, setScore] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [timeLeft, setTimeLeft] = useState(20);
+  const [score, setScore] = useState(0);
+  const [quizData, setQuizData] = useState({
+    quiz_number: 0,
+    question_number: 0,
+    true_number: 0,
+    false_number: 0,
+  });
+  const { decrementLife, user } = useAuthStore();
 
   const timerRef = useRef(null);
   const progressAnim = useSharedValue(0);
   const confettiRef = useRef(null);
 
+  console.log(user);
+
   const startGame = () => {
+    decrementLife();
     let newQuestions;
     switch (type) {
       case "district":
@@ -48,6 +60,10 @@ export default function QuizScreen({ type }) {
 
       case "plate":
         newQuestions = quizService.generatePlateQuestions();
+        break;
+
+      case "plate20":
+        newQuestions = quizService.generatePlateQuestions(3);
         break;
 
       default:
@@ -92,14 +108,40 @@ export default function QuizScreen({ type }) {
     setSelectedAnswer(index);
     setIsAnswered(true);
 
+    let isCorrect = false;
+    let isSkipped = index === null;
+
     if (index === questions[currentQuestion]?.correctAnswer) {
       setScore((prev) => prev + 10);
       confettiRef.current?.play();
+      isCorrect = true;
     }
+
+    // Her cevap için question_number + doğru/yanlış
+    setQuizData((prev) => ({
+      ...prev,
+      question_number: prev.question_number + 1,
+      true_number: isSkipped
+        ? prev.true_number
+        : prev.true_number + (isCorrect ? 1 : 0),
+      false_number: isSkipped
+        ? prev.false_number
+        : prev.false_number + (isCorrect ? 0 : 1),
+    }));
 
     if (timerRef.current) clearInterval(timerRef.current);
 
+    // Son soruya geldiysen quiz_number'ı 1 artır
+    const isLastQuestion = currentQuestion + 1 === questions.length;
+
     setTimeout(() => {
+      if (isLastQuestion) {
+        setQuizData((prev) => ({
+          ...prev,
+          quiz_number: prev.quiz_number + 1,
+        }));
+      }
+
       nextQuestion();
     }, 1500);
   };
@@ -127,12 +169,30 @@ export default function QuizScreen({ type }) {
           loop
           style={styles.lottieStart}
         />
-        <Text style={styles.startTitle}>Plaka Bilgi Yarışması</Text>
+        <Text style={styles.startTitle}>
+          {type == "plate"
+            ? "İller ve Plakaları"
+            : type == "region"
+            ? "Bölgeler ve İller"
+            : type == "plate20"
+            ? "İller ve Plakaları - 20"
+            : "İller ve İlçeleri"}{" "}
+          Bilgi Yarışması
+        </Text>
         <Text style={styles.startSubtitle}>
-          Türkiye'nin şehir plakalarını ne kadar iyi biliyorsun?
+          Türkiye'nin{" "}
+          {type == "plate"
+            ? "şehir plakalarını"
+            : type == "region"
+            ? "bölgelerini ve şehirlerini"
+            : "illerini ve ilçelerini"}{" "}
+          ne kadar iyi biliyorsun?
         </Text>
         <TouchableOpacity style={styles.startButton} onPress={startGame}>
           <Text style={styles.startButtonText}>BAŞLA</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={goBack}>
+          <Text style={styles.backButtonText}>GERİ</Text>
         </TouchableOpacity>
       </Animated.View>
     );
@@ -152,6 +212,7 @@ export default function QuizScreen({ type }) {
         score={score}
         startGame={startGame}
         confettiRef={confettiRef}
+        quizData={quizData}
       />
     );
   }
@@ -194,7 +255,7 @@ export default function QuizScreen({ type }) {
       <View>
         <Animated.View
           key={`question-${currentQuestion}`}
-          entering={SlideInUp.delay(100).springify().damping(20).stiffness(150)}
+          entering={SlideInUp.delay(200).springify().damping(20).stiffness(150)}
           exiting={FadeOutUp.duration(400).easing(Easing.inOut(Easing.linear))}
           style={styles.questionContainer}
         >
@@ -231,11 +292,11 @@ export default function QuizScreen({ type }) {
                 key={`${questions[currentQuestion].id + index}`}
                 entering={
                   index % 2 === 0
-                    ? FadeInLeft.delay(delay * index)
+                    ? FadeInLeft.delay(delay * (index + 1))
                         .springify()
                         .damping(100)
                         .stiffness(150)
-                    : FadeInRight.delay(delay * index)
+                    : FadeInRight.delay(delay * (index + 1))
                         .springify()
                         .damping(100)
                         .stiffness(150)

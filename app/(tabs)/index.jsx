@@ -1,8 +1,10 @@
 import { COLORS } from "@/constants/Colors";
+import { useAuthStore } from "@/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Animated,
   FlatList,
   Image,
@@ -12,17 +14,77 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { RefreshControl } from "react-native-gesture-handler";
+import LifeTimer from "../../components/LifeTimer";
+
+export const data = [
+  {
+    title: "İl - Plaka",
+    url: "quiz/plate",
+    path: require("@/assets/images/icons/city.png"),
+    path2: require("@/assets/images/icons/plate.png"),
+  },
+  {
+    title: "İl - Bölge",
+    url: "quiz/region",
+    path: require("@/assets/images/icons/city.png"),
+    path2: require("@/assets/images/icons/country.png"),
+  },
+  {
+    title: "İl - İlçe",
+    url: "quiz/district",
+    path: require("@/assets/images/icons/city.png"),
+    path2: require("@/assets/images/icons/district.png"),
+  },
+  {
+    title: "İl - Plaka (20)",
+    url: "quiz/plate20",
+    path: require("@/assets/images/icons/city.png"),
+    path2: require("@/assets/images/icons/plate.png"),
+  },
+];
 
 export default function QuizHome() {
+  const { logout, user, refreshLivesIfNeeded, decrementLife } = useAuthStore();
   const router = useRouter();
-  const [profile, setProfile] = useState("");
+  const [gridData, setGridData] = useState(data);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const fadeAnim = new Animated.Value(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [userData, setUserData] = useState(null);
+
+  const fetchData = async () => {
+    setRefreshing(true);
+    // Simulate API call
+    setTimeout(() => {
+      refreshLivesIfNeeded();
+      setUserData(user);
+      // console.log(user);
+      setGridData(data); // Replace with API response if needed
+      setRefreshing(false);
+    }, 1000);
+  };
+
+  const refresh = () => {
+    fetchData();
+  };
+
+  const handleLogout = async () => {
+    const response = await logout();
+    if (response.success) {
+      Alert.alert("Başarılı", "Başarılı bir şekilde çıkış yapıldı.");
+    }
+  };
+
+  const handleBuyLife = async () => {
+    // await decrementLife();
+    // console.log("1 can azaldı. ");
+    router.push("life");
+  };
 
   useEffect(() => {
-    const profileImage = `https://api.dicebear.com/7.x/avataaars/png?seed=new`;
-    setProfile(profileImage);
-  }, []);
+    fetchData();
+  }, [user]);
 
   const renderGrid = ({ item }) => (
     <Animated.View style={styles.gridView}>
@@ -32,14 +94,14 @@ export default function QuizHome() {
         style={styles.grid}
       >
         <Image
-          tintColor={COLORS.background}
+          tintColor={COLORS.textDark}
           style={styles.gridImage}
           height={60}
           width={60}
           source={`${item.path}`}
         />
         <Image
-          tintColor={COLORS.background}
+          tintColor={COLORS.textDark}
           style={styles.gridImage}
           height={60}
           width={60}
@@ -61,54 +123,56 @@ export default function QuizHome() {
 
   return (
     <ImageBackground
-      source={require("@/assets/images/bg.jpg")}
+      // source={require("@/assets/images/bg.jpg")}
       style={styles.background}
     >
       <View style={styles.container}>
         {/* Üst Header */}
         <View style={styles.header}>
-          <Text style={styles.username}>Kullanıcı Adı</Text>
-          <Image
-            height={50}
-            width={50}
-            source={
-              profile
-                ? { uri: profile }
-                : require("@/assets/images/default-user.png")
-            }
-            style={styles.profileImage}
-          />
-          <Text style={styles.points}>Puan: 1200</Text>
+          <View style={styles.headerSection}>
+            <View style={styles.userDetailView}>
+              <TouchableOpacity onPress={handleBuyLife}>
+                <Image
+                  height={50}
+                  width={50}
+                  source={
+                    userData?.profile
+                      ? { uri: userData?.profile }
+                      : require("@/assets/images/default-user.png")
+                  }
+                  style={styles.profileImage}
+                />
+              </TouchableOpacity>
+              <View style={styles.livesView}>
+                <Ionicons style={styles.liveIcon} name="heart" size={20} />
+                <Text style={styles.lives}> {userData?.lives}</Text>
+                {user?.lives < 10 && (
+                  <TouchableOpacity onPress={handleBuyLife}>
+                    <Ionicons
+                      style={styles.addIcon}
+                      name="add-circle-outline"
+                      size={25}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+              {user?.lives < 10 && <LifeTimer />}
+            </View>
+          </View>
+          <View style={styles.headerSection}>
+            <View style={styles.userDetailView}>
+              <Ionicons name="medal-outline" size={30} color={"orange"} />
+              <Text style={styles.points}>{user?.score}</Text>
+            </View>
+          </View>
         </View>
 
         {/* Grid Alanı */}
         <FlatList
-          data={[
-            {
-              title: "İl - Plaka",
-              url: "quiz/plate",
-              path: require("@/assets/images/icons/city.png"),
-              path2: require("@/assets/images/plate.png"),
-            },
-            {
-              title: "İl - Bölge",
-              url: "quiz/region",
-              path: require("@/assets/images/icons/city.png"),
-              path2: require("@/assets/images/icons/country.png"),
-            },
-            {
-              title: "İl - İlçe",
-              url: "quiz/district",
-              path: require("@/assets/images/icons/city.png"),
-              path2: require("@/assets/images/icons/district.png"),
-            },
-            {
-              title: "İl - Alan Kodu",
-              url: "quiz/plate",
-              path: require("@/assets/images/icons/city.png"),
-              path2: require("@/assets/images/icons/phone.png"),
-            },
-          ]}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} />
+          }
+          data={gridData}
           renderItem={renderGrid}
           numColumns={2}
           keyExtractor={(item, index) => index.toString()}
@@ -122,11 +186,15 @@ export default function QuizHome() {
             style={styles.iconButton}
             onPress={() => console.log("İstatistikler Açıldı")}
           >
-            <Ionicons name="stats-chart-outline" size={30} color="white" />
+            <Ionicons
+              name="stats-chart-outline"
+              size={30}
+              color={COLORS.black}
+            />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton} onPress={toggleSettings}>
-            <Ionicons name="settings-outline" size={30} color="white" />
+          <TouchableOpacity style={styles.iconButton} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={30} color={COLORS.black} />
           </TouchableOpacity>
         </View>
 
@@ -150,7 +218,11 @@ export default function QuizHome() {
 }
 
 const styles = StyleSheet.create({
-  background: { flex: 1, resizeMode: "cover" },
+  background: {
+    flex: 1,
+    resizeMode: "cover",
+    backgroundColor: COLORS.background,
+  },
   container: {
     flex: 1,
     flexDirection: "column",
@@ -163,7 +235,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: 10,
   },
-  username: { fontSize: 18, color: "white" },
+  headerSection: {
+    width: 100,
+    alignItems: "center",
+  },
+  username: { fontSize: 18, color: COLORS.black },
   profileImage: {
     width: 80,
     height: 80,
@@ -173,7 +249,35 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     marginBottom: 15,
   },
-  points: { fontSize: 18, color: "white" },
+  userDetailView: {
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  livesView: {
+    flexDirection: "row",
+  },
+  liveIcon: {
+    color: COLORS.error,
+  },
+  addIcon: {
+    color: COLORS.black,
+    marginLeft: 5,
+  },
+  lives: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+  points: {
+    backgroundColor: COLORS.white,
+    padding: 4,
+    elevation: 10,
+    borderRadius: 10,
+    fontSize: 18,
+    color: COLORS.black,
+    fontWeight: "700",
+    marginTop: 10,
+  },
   gridContainer: { alignItems: "center", margin: 10, marginVertical: "auto" },
   gridView: {
     flexDirection: "column",
@@ -191,8 +295,8 @@ const styles = StyleSheet.create({
     height: "100%",
     width: "100%",
     flexDirection: "row",
-    borderWidth: 3,
-    borderColor: COLORS.black,
+    borderWidth: 2,
+    borderColor: COLORS.textSecondary,
     borderRadius: 20,
     backgroundColor: "transparent",
     justifyContent: "space-between",
@@ -206,7 +310,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
 
-  gridText: { color: COLORS.white, fontSize: 20, fontWeight: "bold" },
+  gridText: { color: COLORS.black, fontSize: 20, fontWeight: "bold" },
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",

@@ -10,27 +10,30 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import Ionicons from "react-native-vector-icons/Ionicons";
+import { Ionicons } from "react-native-vector-icons";
 import styles from "../../assets/styles/login.styles";
 import { router } from "expo-router";
-// import { useAuthStore } from "../../store/authStore";
+import { useAuthStore } from "../../store/authStore";
+import { deleteUsers } from "../../model/db";
 
 const LoginScreen = () => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  //   const { isLoading, login } = useAuthStore();
+  const { isLoading, login, error } = useAuthStore();
 
   const handleLogin = async () => {
     try {
-      console.log(email, password);
-      //   const result = await login(email, password);
-      //   if (!result.success) {
-      //     console.log("error", result);
-      //     Alert.alert("Error", result.error);
-      //   } else {
-      //     Alert.alert("Success", "Login is succesfully");
-      //   }
+      const response = await login(username, password);
+      console.log(response);
+      if (!response.success)
+        return Alert.alert(
+          "Girdiğiniz bilgiler hatalıdır. Lütfen tekrar deneyiniz."
+        );
+      return Alert.alert(
+        "Giriş Başarılı",
+        `Hoşgeldiniz, ${response?.user?.username}`
+      );
     } catch (error) {
       console.error(error);
     }
@@ -43,45 +46,45 @@ const LoginScreen = () => {
     >
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Login</Text>
+          <Text style={styles.title}>Giriş</Text>
           <Text style={styles.subtitle}>
-            Welcome back! Please log in to your account.
+            Hoşgeldiniz! Hesabınıza giriş yapınız.
           </Text>
         </View>
 
         <View style={styles.formContainer}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>Kullanıcı Adı</Text>
             <View style={styles.inputContainer}>
               <Ionicons
-                name="mail-outline"
+                name="person-outline"
                 size={20}
                 color="#8a8a8a"
                 style={styles.inputIcon}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Enter your email"
+                placeholder="Kullanıcı adınızı giriniz"
                 placeholderTextColor="#aaa"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
+                value={username}
+                onChangeText={setUsername}
+                keyboardType="default"
               />
             </View>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>Şifre</Text>
             <View style={styles.inputContainer}>
               <Ionicons
-                name="lock-closed-outline"
+                name="key-outline"
                 size={20}
                 color="#8a8a8a"
                 style={styles.inputIcon}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Enter your password"
+                placeholder="Şifrenizi giriniz"
                 placeholderTextColor="#aaa"
                 value={password}
                 onChangeText={setPassword}
@@ -99,12 +102,8 @@ const LoginScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
-          <View style={styles.passwordForgot}>
-            <TouchableOpacity onPress={() => router.navigate("/resetPassword")}>
-              <Text style={styles.passwordLink}>Forgot password?</Text>
-            </TouchableOpacity>
-          </View>
         </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <TouchableOpacity
           style={styles.button}
@@ -114,15 +113,15 @@ const LoginScreen = () => {
           {isLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Login</Text>
+            <Text style={styles.buttonText}>Giriş Yap</Text>
           )}
         </TouchableOpacity>
 
         {/* FOOTER */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account?</Text>
+          <Text style={styles.footerText}>Hesabım yok?</Text>
           <TouchableOpacity onPress={() => router.navigate("/signup")}>
-            <Text style={styles.link}>Sign Up</Text>
+            <Text style={styles.link}>Kayıt Ol</Text>
           </TouchableOpacity>
         </View>
       </View>

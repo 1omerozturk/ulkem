@@ -1,46 +1,56 @@
-import { View, Text } from "react-native";
-import { StatusBar } from "expo-status-bar";
+// RootLayout.tsx
 import React, { useEffect, useState } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import SafeScreen from "../components/SafeScreen";
+import { useAuthStore } from "../store/authStore"; // authStore dosyan
+import { deleteUsers, getUsers, initDB } from "@/model/db";
 
 export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
-
+  const { checkAuth, user } = useAuthStore();
   const [loading, setLoading] = useState(true);
 
-  // const { checkAuth, user, token } = useAuthStore();
+  useEffect(() => {
+    const init = async () => {
+      initDB();
+      // const users = await getUsers();
+      // console.log("users:", users);
+      if (user) {
+        console.log(user);
+      }
+      await checkAuth();
+      setLoading(false);
+    };
+    init();
+  }, []);
 
-  // useEffect(() => {
-  //   const inAuthScreen = segments[0] === "(auth)";
-  //   const isSignedIn = user && token;
+  useEffect(() => {
+    const inAuthGroup = segments[0] === "(auth)";
+    if (!loading) {
+      if (!user && !inAuthGroup) {
+        router.replace("/(auth)");
+      } else if (user && inAuthGroup) {
+        router.replace("/(tabs)");
+      }
+    }
+  }, [segments, user, loading]);
 
-  //   if (!loading) {
-  //     if (!isSignedIn && !inAuthScreen) {
-  //       router.replace("/(auth)");
-  //     } else if (isSignedIn && inAuthScreen) {
-  //       router.replace(user?.role === "admin" ? "/(dashboard)" : "/(tabs)");
-  //     }
-  //   }
-  // }, [user, token, segments, loading]);
-
-  // useEffect(() => {
-  //   if (user !== undefined && token !== undefined) {
-  //     setLoading(false);
-  //   }
-  // }, [user, token]);
+  useEffect(() => {
+    if (user !== undefined) {
+      setLoading(false);
+    }
+  }, [user]);
 
   return (
     <SafeAreaProvider>
       <SafeScreen>
-        <Stack screenOptions={{ headerShown: true }}>
-          {/* <Stack.Screen name="(auth)" options={{ headerShown: false }} /> */}
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          {/* <Stack.Screen name="(dashboard)" options={{ headerShown: false }} /> */}
-          {/* <Stack.Screen name="productDetail/[id]" options={{ headerShown: false }}
-          /> */}
+        <Stack screenOptions={{ headerShown: false }}>
+          {/* Örnek ekran grupları */}
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
         </Stack>
       </SafeScreen>
       <StatusBar style="dark" />

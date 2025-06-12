@@ -1,7 +1,7 @@
 import citiesData from "../model/data.json";
 
 export const quizService = {
-  generateRegionQuestions: () => {
+  /*  generateRegionQuestions: () => {
     const allCities = citiesData.data;
     if (!allCities || allCities.length === 0) {
       console.error("Şehir verisi bulunamadı veya boş.");
@@ -117,9 +117,87 @@ export const quizService = {
     });
 
     return shuffleArray(questions.slice(0, 10)); // Tüm üretilen soruları en sonda karıştır
+  }, */
+
+  generateRegionQuestions: () => {
+    const allCities = citiesData.data;
+    if (!allCities || allCities.length === 0) {
+      console.error("Şehir verisi bulunamadı veya boş.");
+      return [];
+    }
+
+    const allRegionNames = [
+      ...new Set(allCities.map((city) => city.region.tr)),
+    ];
+
+    // Diziyi karıştıran yardımcı fonksiyon
+    const shuffleArray = (array: any) =>
+      [...array].sort(() => 0.5 - Math.random());
+
+    const shuffledCities = shuffleArray(allCities);
+    const selectedCities = shuffledCities.slice(0, 10);
+    const questions = selectedCities.flatMap((city) => {
+      const correctRegion = city.region.tr;
+      const correctCityName = city.name;
+
+      // --- Soru Tipi 1: "[İL] hangi bölgededir?" ---
+      const otherRegions = shuffleArray(
+        allRegionNames.filter((r) => r !== correctRegion)
+      ).slice(0, 3);
+      const regionOptions = shuffleArray([correctRegion, ...otherRegions]);
+
+      const question1 = {
+        id: Math.floor(Math.random() * 100000) + 1,
+        question: `${correctCityName} hangi bölgededir?`,
+        options: regionOptions,
+        correctAnswer: regionOptions.indexOf(correctRegion),
+        type: "true",
+      };
+
+      // --- Soru Tipi 2: "Hangisi [BÖLGE] bölgesi ilidir?" ---
+      const wrongCities = shuffleArray(
+        allCities.filter((c) => c.region.tr !== correctRegion)
+      ).slice(0, 3);
+      const cityOptions = shuffleArray([
+        correctCityName,
+        ...wrongCities.map((c) => c.name),
+      ]);
+
+      const question2 = {
+        id: Math.floor(Math.random() * 100000) + 1,
+        question: `Hangisi ${correctRegion} bölgesi ilidir?`,
+        options: cityOptions,
+        correctAnswer: cityOptions.indexOf(correctCityName),
+        type: "true",
+      };
+
+      // --- Soru Tipi 3: "Hangisi [BÖLGE] bölgesi ili değildir?" ---
+      const wrongRegionCity = shuffleArray(
+        allCities.filter((c) => c.region.tr !== correctRegion)
+      )[0].name;
+      const correctCities = shuffleArray(
+        allCities.filter((c) => c.region.tr === correctRegion)
+      ).slice(0, 3);
+      const negationOptions = shuffleArray([
+        wrongRegionCity,
+        ...correctCities.map((c) => c.name),
+      ]);
+
+      const question3 = {
+        id: Math.floor(Math.random() * 100000) + 1,
+        question: `Hangisi ${correctRegion} bölgesi ili **DEĞİLDİR**?`,
+        options: negationOptions,
+        correctAnswer: negationOptions.indexOf(wrongRegionCity),
+        type: "false",
+      };
+
+      return [question1, question2, question3];
+    });
+
+    return shuffleArray(questions).slice(0, 10);
   },
 
-  generatePlateQuestions: () => {
+  generatePlateQuestions: (size?: number) => {
     const shuffled = [...citiesData.data].sort(() => 0.5 - Math.random());
     const selectedCities = new Set();
 
@@ -129,7 +207,7 @@ export const quizService = {
         selectedCities.add(city.id);
         return true;
       })
-      .slice(0, 2)
+      .slice(0, size ? size : 10)
       .map((city) => {
         // Rastgele soru tipi seç (0: Plakadan şehir, 1: Şehirden plaka)
         const questionType = Math.floor(Math.random() * 2);
@@ -189,9 +267,7 @@ export const quizService = {
   generateDistrictQuestions: () => {
     const shuffledCities = [...citiesData.data].sort(() => 0.5 - Math.random());
 
-    // 1. Tüm ilçeleri topla ve kaç kere geçtiğini say
     const districtCountMap = new Map<string, number>();
-
     citiesData.data.forEach((city) => {
       city.districts.forEach((district) => {
         const name = district.name;
@@ -199,7 +275,6 @@ export const quizService = {
       });
     });
 
-    // 2. Sadece benzersiz (tek ile ait) ilçeleri al
     const uniqueDistricts = citiesData.data.flatMap((city) =>
       city.districts
         .filter((d) => districtCountMap.get(d.name) === 1)
@@ -210,19 +285,15 @@ export const quizService = {
     );
 
     return shuffledCities
-      .slice(0, 10)
       .map((city) => {
-        let isPositive = Math.random() > 0.5;
         const cityDistricts = city.districts
           .filter((d) => districtCountMap.get(d.name) === 1)
           .map((d) => d.name);
 
+        const isPositive = cityDistricts.length > 0 && Math.random() > 0.5;
+
         let options: string[] = [];
         let correctAnswer: number;
-
-        if (isPositive && cityDistricts.length === 0) {
-          isPositive = false;
-        }
 
         if (isPositive) {
           // Pozitif soru
@@ -234,47 +305,41 @@ export const quizService = {
             .slice(0, 3)
             .map((d) => d.name);
 
+          if (wrongOptions.length < 3) return null;
+
           options = [...wrongOptions, correct].sort(() => 0.5 - Math.random());
           correctAnswer = options.indexOf(correct);
-
-          return {
-            id: Math.floor(Math.random() * 100000) + 1,
-            type: isPositive, // true: olumlu, false: olumsuz
-            question: isPositive
-              ? `Hangisi ${city.name} ilimizin ilçesidir?`
-              : `Hangisi ${city.name} ilimizin ilçesi değildir?`,
-            options,
-            correctAnswer,
-          };
         } else {
           // Negatif soru
           const correctOptions = cityDistricts
             .sort(() => 0.5 - Math.random())
             .slice(0, 3);
+          if (correctOptions.length < 3) return null;
 
-          if (correctOptions.length < 3) {
-            return null;
-          }
-
-          const wrong = uniqueDistricts
+          const wrongOption = uniqueDistricts
             .filter((d) => d.cityName !== city.name)
-            .sort(() => 0.5 - Math.random())[0].name;
+            .sort(() => 0.5 - Math.random())[0]?.name;
 
-          options = [...correctOptions, wrong].sort(() => 0.5 - Math.random());
-          correctAnswer = options.indexOf(wrong);
+          if (!wrongOption) return null;
 
-          return {
-            id: Math.floor(Math.random() * 100000) + 1,
-            type: isPositive, // true: olumlu, false: olumsuz
-            question: isPositive
-              ? `Hangisi ${city.name} ilimizin ilçesidir?`
-              : `Hangisi ${city.name} ilimizin ilçesi değildir?`,
-            cityName: city.name,
-            options,
-            correctAnswer,
-          };
+          options = [...correctOptions, wrongOption].sort(
+            () => 0.5 - Math.random()
+          );
+          correctAnswer = options.indexOf(wrongOption);
         }
+
+        return {
+          id: Math.floor(Math.random() * 100000) + 1,
+          type: isPositive,
+          question: isPositive
+            ? `Hangisi ${city.name} ilimizin ilçesidir?`
+            : `Hangisi ${city.name} ilimizin ilçesi değildir?`,
+          cityName: city.name,
+          options,
+          correctAnswer,
+        };
       })
-      .filter(Boolean); // null olan soruları at
+      .filter(Boolean)
+      .slice(0, 10); // sadece 10 geçerli soru döndür
   },
 };

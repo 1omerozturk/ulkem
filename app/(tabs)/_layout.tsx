@@ -10,6 +10,7 @@ export default function TabLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
+      <Stack.Screen name="life" />
       <Stack.Screen name="quiz/[type]" />
       <Stack.Screen name="profile" />
       
