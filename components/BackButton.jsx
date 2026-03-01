@@ -14,7 +14,7 @@ export default function BackButton() {
         style={styles.button}
         onPress={() => navigation.goBack()}
       >
-        <Ionicons name="arrow-back-circle" size={36} color={COLORS.primary} />
+        <Ionicons name="arrow-back-circle" size={36} color={COLORS.textDark} />
       </TouchableOpacity>
     </View>
   );
@@ -23,7 +23,7 @@ export default function BackButton() {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    top: 20,
+    top: 10,
     left: 10,
   },
   button: {

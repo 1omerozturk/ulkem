@@ -125,6 +125,16 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 30,
   },
+  flagContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  flagImage: {
+    width: 150,
+    height: 100,
+    borderRadius: 10,
+    resizeMode: 'contain',
+  },
   plateCode: {
     fontWeight: '700',
     fontSize: 26,

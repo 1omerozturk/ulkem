@@ -1,11 +1,9 @@
+import { goBack } from "expo-router/build/global-state/routing";
 import Lottie from "lottie-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
-  Easing,
   FadeIn,
-  FadeInLeft,
-  FadeInRight,
   FadeOut,
   FadeOutUp,
   runOnJS,
@@ -13,20 +11,18 @@ import Animated, {
   SlideInUp,
   useSharedValue,
   withTiming,
-  ZoomIn,
-  ZoomOut,
 } from "react-native-reanimated";
 import { styles } from "../assets/styles/quiz.styles";
 import { COLORS } from "../constants/Colors";
 import { quizService } from "../service/quizService";
+import { useAuthStore } from "../store/authStore";
 import ResultScreen from "./ResultScreen";
 import TimerBar from "./TimerBar";
-import { goBack } from "expo-router/build/global-state/routing";
-import { useAuthStore } from "../store/authStore";
 
 export default function QuizScreen({ type }) {
   const [resetTimerKey, setResetTimerKey] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -47,9 +43,11 @@ export default function QuizScreen({ type }) {
 
   console.log(user);
 
-  const startGame = () => {
+  const startGame = async () => {
     decrementLife();
-    let newQuestions;
+    setLoading(true);
+    let newQuestions = [];
+
     switch (type) {
       case "district":
         newQuestions = quizService.generateDistrictQuestions();
@@ -57,18 +55,25 @@ export default function QuizScreen({ type }) {
       case "region":
         newQuestions = quizService.generateRegionQuestions();
         break;
-
       case "plate":
         newQuestions = quizService.generatePlateQuestions();
         break;
-
       case "plate20":
-        newQuestions = quizService.generatePlateQuestions(3);
+        newQuestions = quizService.generatePlateQuestions(20);
         break;
-
+      case "country-capital":
+        newQuestions = await quizService.generateCountryCapitalQuestions();
+        break;
+      case "country-continent":
+        newQuestions = await quizService.generateCountryContinentQuestions();
+        break;
+      case "country-flag":
+        newQuestions = await quizService.generateCountryFlagQuestions();
+        break;
       default:
         break;
     }
+
     setQuestions(newQuestions);
     setGameStarted(true);
     setScore(0);
@@ -77,6 +82,7 @@ export default function QuizScreen({ type }) {
     setIsAnswered(false);
     setTimeLeft(20);
     setResetTimerKey((prev) => prev + 1);
+    setLoading(false);
   };
 
   const resetTimer = () => {
@@ -158,6 +164,14 @@ export default function QuizScreen({ type }) {
   }, []);
 
   if (!gameStarted) {
+    if (loading) {
+      return (
+        <View style={styles.container}>
+          <Text>Yükleniyor...</Text>
+        </View>
+      );
+    }
+
     return (
       <Animated.View
         style={styles.startContainer}
@@ -171,22 +185,36 @@ export default function QuizScreen({ type }) {
         />
         <Text style={styles.startTitle}>
           {type == "plate"
-            ? "İller ve Plakaları"
+            ? "İller ve Plakaları\n"
             : type == "region"
-            ? "Bölgeler ve İller"
-            : type == "plate20"
-            ? "İller ve Plakaları - 20"
-            : "İller ve İlçeleri"}{" "}
+              ? "Bölgeler ve İller\n"
+              : type == "plate20"
+                ? "İller ve Plakaları - 20\n"
+                : type == "country-capital"
+                  ? "Ülke - Başkent\n"
+                  : type == "country-continent"
+                    ? "Ülke - Kıta\n"
+                    : type == "country-flag"
+                      ? "Ülke - Bayrak\n"
+                      : "İller ve İlçeleri\n"}{" "}
           Bilgi Yarışması
         </Text>
         <Text style={styles.startSubtitle}>
-          Türkiye'nin{" "}
-          {type == "plate"
-            ? "şehir plakalarını"
-            : type == "region"
-            ? "bölgelerini ve şehirlerini"
-            : "illerini ve ilçelerini"}{" "}
-          ne kadar iyi biliyorsun?
+          {type === "country-capital"
+            ? "Dünya ülkelerini ve başkentlerini ne kadar iyi biliyorsun?"
+            : type === "country-continent"
+              ? "Ülkeleri hangi kıtada yer aldıklarını ne kadar iyi biliyorsun?"
+              : type === "country-flag"
+                ? "Dünya bayraklarını ne kadar iyi tanıyorsun?"
+                : "Türkiye'nin" +
+                  " " +
+                  (type == "plate"
+                    ? "şehir plakalarını"
+                    : type == "region"
+                      ? "bölgelerini ve şehirlerini"
+                      : "illerini ve ilçelerini") +
+                  " " +
+                  "ne kadar iyi biliyorsun?"}
         </Text>
         <TouchableOpacity style={styles.startButton} onPress={startGame}>
           <Text style={styles.startButtonText}>BAŞLA</Text>
@@ -201,7 +229,16 @@ export default function QuizScreen({ type }) {
   if (!questions.length) {
     return (
       <View style={styles.container}>
-        <Text>Yükleniyor...</Text>
+        <Text>Sorular yükleniyor veya alınamadı...</Text>
+        <TouchableOpacity
+          style={[styles.startButton, { marginTop: 20 }]}
+          onPress={() => {
+            // allow user to try again
+            startGame();
+          }}
+        >
+          <Text style={styles.startButtonText}>Yeniden Deneyin</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -225,11 +262,8 @@ export default function QuizScreen({ type }) {
         <View style={styles.header}>
           <Animated.Text
             key={currentQuestion}
-            entering={SlideInDown.delay(100)
-              .springify()
-              .damping(15)
-              .stiffness(120)}
-            exiting={FadeOut.duration(300).easing(Easing.inOut(Easing.quad))}
+            entering={SlideInDown.duration(300)}
+            exiting={FadeOut.duration(200)}
             style={styles.questionCounter}
           >
             {currentQuestion + 1}
@@ -239,8 +273,8 @@ export default function QuizScreen({ type }) {
           <Text style={styles.scoreText}>Puan: {score}</Text>
 
           <Animated.View
-            entering={ZoomIn.duration(500)}
-            exiting={ZoomOut.duration(300)}
+            entering={FadeIn.duration(300)}
+            exiting={FadeOut.duration(200)}
             style={styles.timerContainer}
           >
             <Text style={styles.timerText}>{timeLeft}</Text>
@@ -255,18 +289,26 @@ export default function QuizScreen({ type }) {
       <View>
         <Animated.View
           key={`question-${currentQuestion}`}
-          entering={SlideInUp.delay(200).springify().damping(20).stiffness(150)}
-          exiting={FadeOutUp.duration(400).easing(Easing.inOut(Easing.linear))}
+          entering={SlideInUp.duration(300)}
+          exiting={FadeOutUp.duration(200)}
           style={styles.questionContainer}
         >
+          {questions[currentQuestion]?.flagUrl && (
+            <View style={styles.flagContainer}>
+              <Image
+                source={{ uri: questions[currentQuestion]?.flagUrl }}
+                style={styles.flagImage}
+              />
+            </View>
+          )}
           <Text style={styles.questionText}>
             <Text
               style={
                 questions[currentQuestion]?.type === true
                   ? styles.positiveQuestion
                   : questions[currentQuestion]?.type === false
-                  ? styles.negativeQuestion
-                  : styles.questionText
+                    ? styles.negativeQuestion
+                    : styles.questionText
               }
             >
               {questions[currentQuestion]?.question}
@@ -276,7 +318,6 @@ export default function QuizScreen({ type }) {
 
         <View style={styles.optionsContainer}>
           {questions[currentQuestion]?.options.map((option, index) => {
-            const delay = 300;
             const isCorrect =
               index === questions[currentQuestion]?.correctAnswer;
             const isSelected = index === selectedAnswer;
@@ -290,20 +331,8 @@ export default function QuizScreen({ type }) {
             return (
               <Animated.View
                 key={`${questions[currentQuestion].id + index}`}
-                entering={
-                  index % 2 === 0
-                    ? FadeInLeft.delay(delay * (index + 1))
-                        .springify()
-                        .damping(100)
-                        .stiffness(150)
-                    : FadeInRight.delay(delay * (index + 1))
-                        .springify()
-                        .damping(100)
-                        .stiffness(150)
-                }
-                exiting={FadeOut.duration(300).easing(
-                  Easing.inOut(Easing.linear)
-                )}
+                entering={FadeIn.duration(200)}
+                exiting={FadeOut.duration(200)}
               >
                 <TouchableOpacity
                   activeOpacity={0.8}
@@ -317,8 +346,8 @@ export default function QuizScreen({ type }) {
                         ? isCorrect
                           ? "#4CAF50" // Doğru cevap yeşil
                           : isSelected
-                          ? "#F44336" // Yanlış cevap kırmızı
-                          : COLORS.cardBackground
+                            ? "#F44336" // Yanlış cevap kırmızı
+                            : COLORS.cardBackground
                         : COLORS.cardBackground,
                       transform: [{ scale: isSelected ? 1.05 : 1 }], // Seçildiğinde hafif büyütme efekti
                     },

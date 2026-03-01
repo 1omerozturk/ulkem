@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite'
 
-export const db = SQLite.openDatabaseSync('ulkem.db')
+export const db = SQLite.openDatabaseSync('ulkemdb')
 
 export const initDB = async () => {
   try {
@@ -141,7 +141,7 @@ export const updateUserLives = async (username, lives, last_life_update) => {
 }
 
 export const updateUserLivesToBuy = async (username, lives) => {
-  await db.runAsync('UPDATE users SET lives = ?, WHERE username = ?', [
+  await db.runAsync('UPDATE users SET lives = ? WHERE username = ?', [
     lives,
     username,
   ])
@@ -161,9 +161,12 @@ export const updateUserQuizAndScore = async (
 ) => {
   await db.runAsync('UPDATE users SET score = ? WHERE id = ?', [score, userId])
 
-  await db.runAsync(
-    'UPDATE quiz_data SET quiz_number = ?, question_number = ?, true_number = ?, false_number = ? WHERE user_id = ?',
-    [quizNumber, questionNumber, trueNumber, falseNumber, userId],
+  await updateUserQuizData(
+    userId,
+    quizNumber,
+    questionNumber,
+    trueNumber,
+    falseNumber,
   )
 }
 

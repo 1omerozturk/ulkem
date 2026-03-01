@@ -104,11 +104,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 10,
   },
   infoBox: {
     alignItems: "center",
-    padding: 15,
+    padding: 10,
     borderRadius: 10,
     backgroundColor: COLORS.cardBackground,
     shadowColor: COLORS.black,
@@ -151,6 +151,7 @@ const styles = StyleSheet.create({
   },
 
   button: {
+    marginTop: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,

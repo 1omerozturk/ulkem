@@ -142,7 +142,7 @@ export const quizService = {
 
       // --- Soru Tipi 1: "[İL] hangi bölgededir?" ---
       const otherRegions = shuffleArray(
-        allRegionNames.filter((r) => r !== correctRegion)
+        allRegionNames.filter((r) => r !== correctRegion),
       ).slice(0, 3);
       const regionOptions = shuffleArray([correctRegion, ...otherRegions]);
 
@@ -156,7 +156,7 @@ export const quizService = {
 
       // --- Soru Tipi 2: "Hangisi [BÖLGE] bölgesi ilidir?" ---
       const wrongCities = shuffleArray(
-        allCities.filter((c) => c.region.tr !== correctRegion)
+        allCities.filter((c) => c.region.tr !== correctRegion),
       ).slice(0, 3);
       const cityOptions = shuffleArray([
         correctCityName,
@@ -173,10 +173,10 @@ export const quizService = {
 
       // --- Soru Tipi 3: "Hangisi [BÖLGE] bölgesi ili değildir?" ---
       const wrongRegionCity = shuffleArray(
-        allCities.filter((c) => c.region.tr !== correctRegion)
+        allCities.filter((c) => c.region.tr !== correctRegion),
       )[0].name;
       const correctCities = shuffleArray(
-        allCities.filter((c) => c.region.tr === correctRegion)
+        allCities.filter((c) => c.region.tr === correctRegion),
       ).slice(0, 3);
       const negationOptions = shuffleArray([
         wrongRegionCity,
@@ -240,7 +240,7 @@ export const quizService = {
             .filter((c) => c.id !== city.id)
             .sort(() => 0.5 - Math.random())
             .map((c) =>
-              c.id < 10 ? "0".concat(c.id.toString()) : c.id.toString()
+              c.id < 10 ? "0".concat(c.id.toString()) : c.id.toString(),
             );
 
           const uniqueOptions = new Set([
@@ -257,11 +257,180 @@ export const quizService = {
             question: `${city.name} ilinin plaka kodu kaçtır?`,
             options,
             correctAnswer: options.indexOf(
-              city.id < 10 ? "0".concat(city.id.toString()) : city.id.toString()
+              city.id < 10
+                ? "0".concat(city.id.toString())
+                : city.id.toString(),
             ),
           };
         }
       });
+  },
+
+  // cache for countries data to avoid multiple fetches
+  _countriesCache: null as any[] | null,
+
+  fetchCountryData: async () => {
+    // if we already fetched once, reuse
+    if (quizService._countriesCache) {
+      return quizService._countriesCache;
+    }
+
+    try {
+      // include name (Turkish translations), capital, region, flags, continents
+      const url =
+        "https://restcountries.com/v3.1/all?fields=name,capital,region,flags,continents";
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.error("Ülke verisi alınamadı", res.status);
+        return [];
+      }
+      const data = await res.json();
+      // basic filtering to ensure required fields exist
+      const filtered = data.filter(
+        (c: any) =>
+          (c?.name?.common || c?.name?.official) &&
+          Array.isArray(c.capital) &&
+          c.capital.length > 0 &&
+          typeof c.region === "string" &&
+          c?.flags?.png &&
+          Array.isArray(c.continents) &&
+          c.continents.length > 0,
+      );
+      quizService._countriesCache = filtered;
+      return filtered;
+    } catch (err) {
+      console.error("RESTCountries API hatası", err);
+      return [];
+    }
+  },
+
+  generateCountryCapitalQuestions: async (size: number = 10) => {
+    const allCountries = await quizService.fetchCountryData();
+    if (!allCountries || allCountries.length === 0) return [];
+
+    const shuffleArray = (array: any[]) =>
+      [...array].sort(() => 0.5 - Math.random());
+
+    const shuffled = shuffleArray(allCountries);
+    const selected = shuffled.slice(0, size);
+
+    const questions: any[] = [];
+
+    selected.forEach((country: any) => {
+      const countryName =
+        country.name.common || country.name.official || "Bilinmeyen";
+      const capital = country.capital[0];
+
+      // 1. Capital -> Country
+      const wrongCountries = shuffleArray(
+        allCountries.filter(
+          (c: any) => (c.name.common || c.name.official) !== countryName,
+        ),
+      )
+        .slice(0, 3)
+        .map((c: any) => c.name.common || c.name.official);
+      const opts1 = shuffleArray([countryName, ...wrongCountries]);
+      questions.push({
+        id: Math.floor(Math.random() * 100000) + 1,
+        question: `${capital} başkentli ülke hangisidir?`,
+        options: opts1,
+        correctAnswer: opts1.indexOf(countryName),
+      });
+
+      // 2. Country -> Capital
+      const wrongCapitals = shuffleArray(
+        allCountries
+          .filter(
+            (c: any) => (c.name.common || c.name.official) !== countryName,
+          )
+          .filter((c: any) => Array.isArray(c.capital) && c.capital.length > 0),
+      )
+        .slice(0, 3)
+        .map((c: any) => c.capital[0]);
+      const opts2 = shuffleArray([capital, ...wrongCapitals]);
+      questions.push({
+        id: Math.floor(Math.random() * 100000) + 1,
+        question: `${countryName} ülkesinin başkenti hangisidir?`,
+        options: opts2,
+        correctAnswer: opts2.indexOf(capital),
+      });
+    });
+
+    return shuffleArray(questions).slice(0, size);
+  },
+
+  generateCountryContinentQuestions: async (size: number = 10) => {
+    const allCountries = await quizService.fetchCountryData();
+    if (!allCountries || allCountries.length === 0) return [];
+
+    const shuffleArray = (array: any[]) =>
+      [...array].sort(() => 0.5 - Math.random());
+
+    const shuffled = shuffleArray(allCountries);
+    const selected = shuffled.slice(0, size);
+
+    const questions: any[] = [];
+
+    selected.forEach((country: any) => {
+      const countryName =
+        country.name.common || country.name.official || "Bilinmeyen";
+      const continent = country.continents[0];
+
+      const allContinents = Array.from(
+        new Set(allCountries.map((c: any) => c.continents[0])),
+      ) as string[];
+      const wrongContinents = shuffleArray(
+        allContinents.filter((c) => c !== continent),
+      ).slice(0, 3);
+      const opts = shuffleArray([continent, ...wrongContinents]);
+
+      questions.push({
+        id: Math.floor(Math.random() * 100000) + 1,
+        question: `${countryName} hangi kıtada yer almaktadır?`,
+        options: opts,
+        correctAnswer: opts.indexOf(continent),
+      });
+    });
+
+    return shuffleArray(questions).slice(0, size);
+  },
+
+  generateCountryFlagQuestions: async (size: number = 10) => {
+    const allCountries = await quizService.fetchCountryData();
+    if (!allCountries || allCountries.length === 0) return [];
+
+    const shuffleArray = (array: any[]) =>
+      [...array].sort(() => 0.5 - Math.random());
+
+    const shuffled = shuffleArray(allCountries);
+    const selected = shuffled.slice(0, size);
+
+    const questions: any[] = [];
+
+    selected.forEach((country: any) => {
+      const countryName =
+        country.name.common || country.name.official || "Bilinmeyen";
+      const flagUrl = country.flags?.png || "";
+
+      const wrongCountries = shuffleArray(
+        allCountries.filter(
+          (c: any) => (c.name.common || c.name.official) !== countryName,
+        ),
+      )
+        .slice(0, 3)
+        .map((c: any) => c.name.common || c.name.official);
+      const opts = shuffleArray([countryName, ...wrongCountries]);
+
+      questions.push({
+        id: Math.floor(Math.random() * 100000) + 1,
+        question: `Bu bayrak hangi ülkeye aittir?`,
+        options: opts,
+        correctAnswer: opts.indexOf(countryName),
+        flagUrl,
+      });
+    });
+
+    return shuffleArray(questions).slice(0, size);
   },
 
   generateDistrictQuestions: () => {
@@ -281,7 +450,7 @@ export const quizService = {
         .map((d) => ({
           name: d.name,
           cityName: city.name,
-        }))
+        })),
     );
 
     return shuffledCities
@@ -323,7 +492,7 @@ export const quizService = {
           if (!wrongOption) return null;
 
           options = [...correctOptions, wrongOption].sort(
-            () => 0.5 - Math.random()
+            () => 0.5 - Math.random(),
           );
           correctAnswer = options.indexOf(wrongOption);
         }

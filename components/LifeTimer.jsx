@@ -26,12 +26,14 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.white,
     padding:2,
+    borderColor:COLORS.black,
+    borderWidth:1,
     borderRadius:5,
     elevation:5,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
-  },
+    marginLeft:4,
+    },
   text: {
     fontSize: 18,
     fontWeight: "bold",

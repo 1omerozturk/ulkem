@@ -11,5 +11,7 @@ export const COLORS = {
   white: "#ffffff",
   black: "#000000",
   error:"#FF0000FF",
+  true:"#24D721FF",
+  false:"#FF0000FF",
   score:"#FFE600FF",
 };

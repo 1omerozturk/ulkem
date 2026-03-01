@@ -119,19 +119,33 @@ export const useAuthStore = create((set, get) => ({
       if (!user) return
 
       const newTotalScore = user.score + score
+      const newTotalQuizNumber =
+        user.quizData.quiz_number + quizData.quiz_number
+      const newTotalQuestionNumber =
+        user.quizData.question_number + quizData.question_number
+      const newTotalFalseNumber =
+        user.quizData.false_number + quizData.false_number
+      const newTotalTrueNumber =
+        user.quizData.true_number + quizData.true_number
 
       await updateUserQuizAndScore(
         user.id,
         newTotalScore,
-        quizData?.quiz_number,
-        quizData?.question_number, // Yeni alan burada devreye giriyor!
-        quizData?.true_number,
-        quizData?.false_number,
+        newTotalQuizNumber,
+        newTotalQuestionNumber, // Yeni alan burada devreye giriyor!
+        newTotalTrueNumber,
+        newTotalFalseNumber,
       )
 
       const updatedUser = {
         ...user,
         score: newTotalScore,
+        quizData: {
+          quiz_number: newTotalQuizNumber,
+          question_number: newTotalQuestionNumber,
+          true_number: newTotalTrueNumber,
+          false_number: newTotalFalseNumber,
+        },
       }
 
       set({ user: updatedUser })
@@ -210,7 +224,7 @@ export const useAuthStore = create((set, get) => ({
         ...user,
         lives: updatedLives,
         score: updatedScore,
-        last_life_update: now,
+        last_life_update: user.lastUpdate,
       }
       set({ user: updatedUser })
       await SecureStore.setItemAsync('user', JSON.stringify(updatedUser))

@@ -6,7 +6,6 @@ import React, { useEffect, useState } from "react";
 import {
   Alert,
   Animated,
-  FlatList,
   Image,
   ImageBackground,
   StyleSheet,
@@ -14,40 +13,55 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { RefreshControl } from "react-native-gesture-handler";
 import LifeTimer from "../../components/LifeTimer";
+import SettingsModal from "../../components/SettingsModal";
 
-export const data = [
+export const worldQuizData = [
+  {
+    title: "Ülke - Başkent",
+    url: "quiz/country-capital",
+    path: require("@/assets/images/u_icons/capital.png"),
+  },
+  {
+    title: "Ülke - Kıta",
+    url: "quiz/country-continent",
+    path: require("@/assets/images/u_icons/continents.png"),
+  },
+  {
+    title: "Ülke - Bayrak",
+    url: "quiz/country-flag",
+    path: require("@/assets/images/u_icons/flags.png"),
+  },
+];
+
+export const turkeyQuizData = [
   {
     title: "İl - Plaka",
     url: "quiz/plate",
-    path: require("@/assets/images/icons/city.png"),
-    path2: require("@/assets/images/icons/plate.png"),
+    path: require("@/assets/images/u_icons/plate.png"),
   },
   {
     title: "İl - Bölge",
     url: "quiz/region",
-    path: require("@/assets/images/icons/city.png"),
-    path2: require("@/assets/images/icons/country.png"),
+    path: require("@/assets/images/u_icons/capital.png"),
   },
   {
     title: "İl - İlçe",
     url: "quiz/district",
-    path: require("@/assets/images/icons/city.png"),
-    path2: require("@/assets/images/icons/district.png"),
+    path: require("@/assets/images/u_icons/districts.png"),
   },
   {
     title: "İl - Plaka (20)",
     url: "quiz/plate20",
-    path: require("@/assets/images/icons/city.png"),
-    path2: require("@/assets/images/icons/plate.png"),
+    path: require("@/assets/images/u_icons/plate.png"),
   },
 ];
 
+export const data = { world: worldQuizData, turkey: turkeyQuizData };
+
 export default function QuizHome() {
-  const { logout, user, refreshLivesIfNeeded, decrementLife } = useAuthStore();
+  const { logout, user, refreshLivesIfNeeded } = useAuthStore();
   const router = useRouter();
-  const [gridData, setGridData] = useState(data);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const fadeAnim = new Animated.Value(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,7 +74,6 @@ export default function QuizHome() {
       refreshLivesIfNeeded();
       setUserData(user);
       // console.log(user);
-      setGridData(data); // Replace with API response if needed
       setRefreshing(false);
     }, 1000);
   };
@@ -86,40 +99,47 @@ export default function QuizHome() {
     fetchData();
   }, [user]);
 
-  const renderGrid = ({ item }) => (
-    <Animated.View style={styles.gridView}>
-      <TouchableOpacity
-        onPress={() => router.push(item?.url)}
-        activeOpacity={0.85}
-        style={styles.grid}
-      >
-        <Image
-          tintColor={COLORS.textDark}
-          style={styles.gridImage}
-          height={60}
-          width={60}
-          source={`${item.path}`}
-        />
-        <Image
-          tintColor={COLORS.textDark}
-          style={styles.gridImage}
-          height={60}
-          width={60}
-          source={`${item.path2}`}
-        />
-      </TouchableOpacity>
-      <Text style={styles.gridText}>{item.title}</Text>
-    </Animated.View>
+  const renderCategory = (categoryName, items) => (
+    <View key={categoryName} style={{ marginBottom: 30 }}>
+      <Text style={styles.categoryTitle}>
+        {categoryName === "world" ? "🌍 Dünya" : "🇹🇷 Türkiye"}
+      </Text>
+      <View style={styles.categoryGrid}>
+        {items.map((item, index) => (
+          <Animated.View key={index} style={styles.gridView}>
+            <TouchableOpacity
+              onPress={() => router.push(item?.url)}
+              activeOpacity={0.85}
+              style={styles.grid}
+            >
+              <Image
+                style={styles.gridImage}
+                height={60}
+                width={60}
+                source={`${item.path}`}
+              />
+            </TouchableOpacity>
+            <Text style={styles.gridText}>{item.title}</Text>
+          </Animated.View>
+        ))}
+      </View>
+    </View>
   );
 
-  const toggleSettings = () => {
-    setSettingsVisible(!settingsVisible);
-    Animated.timing(fadeAnim, {
-      toValue: settingsVisible ? 0 : 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  };
+  const handleStats = () => {};
+
+  // const toggleSettings = () => {
+  //   const willBeVisible = !settingsVisible;
+  //   setSettingsVisible(willBeVisible);
+
+  // Animated.timing(fadeAnim, {
+  //   toValue: willBeVisible ? 1 : 0,
+  //   duration: 500,
+  //   useNativeDriver: true,
+  // }).start();
+  // };
+
+  const toggleSettings = () => setSettingsVisible(!settingsVisible);
 
   return (
     <ImageBackground
@@ -132,16 +152,19 @@ export default function QuizHome() {
           <View style={styles.headerSection}>
             <View style={styles.userDetailView}>
               <TouchableOpacity onPress={handleBuyLife}>
-                <Image
-                  height={50}
-                  width={50}
-                  source={
-                    userData?.profile
-                      ? { uri: userData?.profile }
-                      : require("@/assets/images/default-user.png")
-                  }
-                  style={styles.profileImage}
-                />
+                <View style={styles.headerView}>
+                  <Image
+                    height={50}
+                    width={50}
+                    source={
+                      userData?.profile
+                        ? { uri: userData?.profile }
+                        : require("@/assets/images/default-user.png")
+                    }
+                    style={styles.profileImage}
+                  />
+                  <Text style={styles.username}> {userData?.username}</Text>
+                </View>
               </TouchableOpacity>
               <View style={styles.livesView}>
                 <Ionicons style={styles.liveIcon} name="heart" size={20} />
@@ -155,8 +178,8 @@ export default function QuizHome() {
                     />
                   </TouchableOpacity>
                 )}
+                {user?.lives < 10 && <LifeTimer />}
               </View>
-              {user?.lives < 10 && <LifeTimer />}
             </View>
           </View>
           <View style={styles.headerSection}>
@@ -167,30 +190,57 @@ export default function QuizHome() {
           </View>
         </View>
 
-        {/* Grid Alanı */}
-        <FlatList
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} />
-          }
-          data={gridData}
-          renderItem={renderGrid}
-          numColumns={2}
-          keyExtractor={(item, index) => index.toString()}
-          contentContainerStyle={styles.gridContainer}
-        />
+        {/* Ana Kategoriler */}
+        <View style={styles.mainView}>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            style={[
+              styles.mainCategoryCard,
+              { backgroundColor: COLORS.primary },
+            ]}
+            onPress={() => router.push("quiz/world")}
+          >
+            <View style={styles.categoryView}>
+              <Image
+                height={40}
+                width={40}
+                source={require("@/assets/images/u_icons/world.png")}
+                style={styles.categoryImage}
+              />
+              <Text style={styles.mainCategoryText}>Dünya</Text>
+            </View>
+            <Text style={styles.mainCategorySub}>Ülkeler quiz'lerine git</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.75}
+            style={[
+              styles.mainCategoryCard,
+              { backgroundColor: COLORS.primary, marginTop: 20 },
+            ]}
+            onPress={() => router.push("quiz/turkey")}
+          >
+            <View style={styles.categoryView}>
+              <Image
+                height={60}
+                width={50}
+                source={require("@/assets/images/u_icons/tr_round.png")}
+                style={styles.categoryImage}
+              />
+              <Text style={styles.mainCategoryText}>Türkiye</Text>
+            </View>
+            <Text style={styles.mainCategorySub}>Türkiye quiz'lerine git</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Alt Navigasyon */}
         <View style={styles.footer}>
           <TouchableOpacity
             activeOpacity={1}
             style={styles.iconButton}
-            onPress={() => console.log("İstatistikler Açıldı")}
+            onPress={toggleSettings}
           >
-            <Ionicons
-              name="stats-chart-outline"
-              size={30}
-              color={COLORS.black}
-            />
+            <Ionicons name="settings" size={30} color={COLORS.black} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.iconButton} onPress={handleLogout}>
@@ -198,20 +248,7 @@ export default function QuizHome() {
           </TouchableOpacity>
         </View>
 
-        {/* Ayarlar Modal */}
-        {/* <Modal visible={settingsVisible} animationType="fade">
-          <View style={styles.modalContainer}>
-            <Animated.View style={[styles.modalContent, { opacity: fadeAnim }]}>
-              <Text style={styles.modalText}>Ayarlar Menüsü</Text>
-              <TouchableOpacity
-                onPress={toggleSettings}
-                style={styles.modalButton}
-              >
-                <Text style={styles.modalButtonText}>Kapat</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-        </Modal> */}
+        <SettingsModal visible={settingsVisible} onToggle={toggleSettings} />
       </View>
     </ImageBackground>
   );
@@ -226,7 +263,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: "column",
-    alignSelf: "baseline",
+    alignSelf: "auto",
     backgroundColor: "transparent",
     padding: 20,
   },
@@ -236,10 +273,21 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   headerSection: {
-    width: 100,
+    width: "auto",
     alignItems: "center",
   },
-  username: { fontSize: 18, color: COLORS.black },
+  headerView: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    columnGap: 5,
+  },
+  username: {
+    fontSize: 18,
+    fontWeight: "800",
+    fontStyle: "normal",
+    color: COLORS.textDark,
+  },
   profileImage: {
     width: 80,
     height: 80,
@@ -255,6 +303,10 @@ const styles = StyleSheet.create({
   },
   livesView: {
     flexDirection: "row",
+    columnGap: 3,
+    alignContent: "center",
+    alignSelf: "flex-start",
+    justifyContent: "center",
   },
   liveIcon: {
     color: COLORS.error,
@@ -278,8 +330,65 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginTop: 10,
   },
-  gridContainer: { alignItems: "center", margin: 10, marginVertical: "auto" },
+  mainView: {
+    flex: 1,
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    rowGap: 50,
+  },
+  gridContainer: { alignItems: "center", margin: 10, paddingBottom: 20 },
+  categoryTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: COLORS.black,
+    marginBottom: 15,
+    marginLeft: 10,
+  },
+  categoryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    marginBottom: 20,
+  },
+  categoryView: {
+    flexDirection: "column",
+    justifyContent: "center",
+    alignContent: "center",
+    alignItems: "center",
+    alignSelf: "auto",
+  },
+  mainCategoryCard: {
+    width: "95%",
+    height: "30%",
+    flexDirection: "column",
+    rowGap: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 22,
+    borderRadius: 14,
+    borderColor: COLORS.black,
+    borderWidth: 3,
+    elevation: 5,
+  },
+  categoryImage: {
+    width: 70,
+    height: 70,
+  },
+  mainCategoryText: {
+    fontSize: 30,
+    fontWeight: "800",
+    color: COLORS.black,
+  },
+
+  mainCategorySub: {
+    fontSize: 18,
+    color: COLORS.black,
+    fontWeight: "700",
+    marginTop: 6,
+  },
   gridView: {
+    flex: 1,
     flexDirection: "column",
     rowGap: 10,
     padding: 5,
@@ -306,8 +415,6 @@ const styles = StyleSheet.create({
   gridImage: {
     width: 50,
     height: 50,
-    backgroundColor: "transparent",
-    borderColor: COLORS.border,
   },
 
   gridText: { color: COLORS.black, fontSize: 20, fontWeight: "bold" },

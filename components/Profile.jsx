@@ -9,10 +9,11 @@ import {
   Text,
   View,
 } from "react-native";
+import Animated, { FadeInUp } from "react-native-reanimated";
 import { COLORS } from "../constants/Colors";
 import { useAuthStore } from "../store/authStore";
-import BuyLive from "./BuyLive";
 import BackButton from "./BackButton";
+import BuyLive from "./BuyLive";
 
 export default function Profile() {
   const [userData, setUserData] = useState(null);
@@ -38,7 +39,7 @@ export default function Profile() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View>
       <ScrollView
         refreshControl={
           <RefreshControl
@@ -48,9 +49,13 @@ export default function Profile() {
             tintColor={COLORS.primary}
           />
         }
+        style={styles.container}
       >
         {/* Profil Kartı */}
-        <View style={styles.profileCard}>
+        <Animated.View
+          entering={FadeInUp.delay(200)}
+          style={styles.profileCard}
+        >
           <Image
             source={
               userData?.profile
@@ -61,24 +66,37 @@ export default function Profile() {
           />
           <Text style={styles.username}>{userData?.username}</Text>
           <Text style={styles.role}>{userData?.role?.toUpperCase()}</Text>
-        </View>
+        </Animated.View>
 
         {/* Quiz İstatistikleri */}
         <View style={styles.statsContainer}>
           <StatBox
+            id={1}
             icon="book"
-            label="Soru"
+            label="Quiz"
             value={userData?.quizData?.quiz_number || 0}
+            color={COLORS.primary}
           />
           <StatBox
+            id={2}
+            icon="help-circle"
+            label="Soru"
+            value={userData?.quizData?.question_number || 0}
+            color={COLORS.textPrimary}
+          />
+          <StatBox
+            id={3}
             icon="checkmark-circle"
             label="Doğru"
             value={userData?.quizData?.true_number || 0}
+            color={COLORS.true}
           />
           <StatBox
+            id={4}
             icon="close-circle"
             label="Yanlış"
             value={userData?.quizData?.false_number || 0}
+            color={COLORS.false}
           />
         </View>
 
@@ -91,17 +109,20 @@ export default function Profile() {
 }
 
 // ⬇️ Stat kutusu bileşeni
-const StatBox = ({ icon, label, value }) => (
-  <View style={styles.statBox}>
-    <Ionicons name={icon} size={28} color={COLORS.primary} />
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
+const StatBox = ({ id, icon, label, value, color }) => {
+  const delay = 150 * id;
+  return (
+    <Animated.View entering={FadeInUp.delay(delay)} style={styles.statBox}>
+      <Ionicons name={icon} size={28} color={color} />
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </Animated.View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    paddingTop: 20,
     backgroundColor: COLORS.background,
     padding: 16,
   },
@@ -109,7 +130,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.cardBackground,
     borderRadius: 16,
     alignItems: "center",
-    padding: 24,
+    padding: 14,
     marginBottom: 20,
     shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 6 },
@@ -156,7 +177,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "bold",
     color: COLORS.textDark,
     marginTop: 6,
