@@ -1,20 +1,21 @@
-import React, { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useState } from "react";
 import {
-  View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  ActivityIndicator,
-  Image,
+  View,
 } from "react-native";
-import { Ionicons } from "react-native-vector-icons";
 import styles from "../../assets/styles/login.styles";
-import { router } from "expo-router";
+import Loading from "../../components/Loading";
+import NoticeModal from "../../components/NoticeModal";
+import { COLORS } from "../../constants/Colors";
 import { useAuthStore } from "../../store/authStore";
-import { deleteUsers } from "../../model/db";
 
 const LoginScreen = () => {
   const [username, setUsername] = useState("");
@@ -25,14 +26,18 @@ const LoginScreen = () => {
   const handleLogin = async () => {
     try {
       const response = await login(username, password);
-      console.log(response);
       if (!response.success)
         return Alert.alert(
-          "Girdiğiniz bilgiler hatalıdır. Lütfen tekrar deneyiniz."
+          "Girdiğiniz bilgiler hatalıdır. Lütfen tekrar deneyiniz.",
         );
-      return Alert.alert(
-        "Giriş Başarılı",
-        `Hoşgeldiniz, ${response?.user?.username}`
+      return (
+        <NoticeModal
+          message={
+            username
+              ? username
+              : "" + "Hoşgeldiniz.\nOynamaya başlayabiliriz 🎮"
+          }
+        ></NoticeModal>
       );
     } catch (error) {
       console.error(error);
@@ -41,90 +46,102 @@ const LoginScreen = () => {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.keyboardContainer}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Giriş</Text>
+      <ScrollView
+        style={styles.scrollViewStyle}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.hero}>
+          <View style={styles.brandMark}>
+            <Ionicons name="map-outline" size={34} color={COLORS.authPrimary} />
+            <View style={styles.brandAccent} />
+          </View>
+          <Text style={styles.eyebrow}>TÜRKİYE&apos;Yİ KEŞFET</Text>
+          <Text style={styles.title}>Ülkem&apos;e hoş geldin</Text>
           <Text style={styles.subtitle}>
-            Hoşgeldiniz! Hesabınıza giriş yapınız.
+            Bilgini keşfet, her gün yeni bir şey öğren.
           </Text>
         </View>
 
-        <View style={styles.formContainer}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Kullanıcı Adı</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons
-                name="person-outline"
-                size={20}
-                color="#8a8a8a"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Kullanıcı adınızı giriniz"
-                placeholderTextColor="#aaa"
-                value={username}
-                onChangeText={setUsername}
-                keyboardType="default"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Şifre</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons
-                name="key-outline"
-                size={20}
-                color="#8a8a8a"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Şifrenizi giriniz"
-                placeholderTextColor="#aaa"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!passwordVisible}
-              />
-              <TouchableOpacity
-                onPress={() => setPasswordVisible(!passwordVisible)}
-                style={styles.eyeIcon}
-              >
+        <View style={styles.card}>
+          <View style={styles.formContainer}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Kullanıcı Adı</Text>
+              <View style={styles.inputContainer}>
                 <Ionicons
-                  name={passwordVisible ? "eye-outline" : "eye-off-outline"}
+                  name="person-outline"
                   size={20}
-                  color="#8a8a8a"
+                  color={COLORS.authTextMuted}
+                  style={styles.inputIcon}
                 />
-              </TouchableOpacity>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Kullanıcı adınızı giriniz"
+                  placeholderTextColor={COLORS.authPlaceholder}
+                  value={username}
+                  onChangeText={setUsername}
+                  keyboardType="default"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Şifre</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons
+                  name="key-outline"
+                  size={20}
+                  color={COLORS.authTextMuted}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Şifrenizi giriniz"
+                  placeholderTextColor={COLORS.authPlaceholder}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!passwordVisible}
+                />
+                <TouchableOpacity
+                  onPress={() => setPasswordVisible(!passwordVisible)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={passwordVisible ? "eye-outline" : "eye-off-outline"}
+                    size={20}
+                    color={COLORS.authTextMuted}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleLogin}
+            disabled={isLoading}
+            activeOpacity={0.85}
+          >
+            {isLoading ? (
+              <Loading compact message="Giriş yapılıyor" />
+            ) : (
+              <Text style={styles.buttonText}>Giriş Yap</Text>
+            )}
+          </TouchableOpacity>
         </View>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleLogin}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Giriş Yap</Text>
-          )}
-        </TouchableOpacity>
-
-        {/* FOOTER */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Hesabım yok?</Text>
+          <Text style={styles.footerText}>Henüz hesabın yok mu?</Text>
           <TouchableOpacity onPress={() => router.navigate("/signup")}>
             <Text style={styles.link}>Kayıt Ol</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };

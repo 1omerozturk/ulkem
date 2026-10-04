@@ -1,5 +1,5 @@
 import { View, Text, Animated, TouchableOpacity } from "react-native";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import Lottie from "lottie-react-native";
 import { styles } from "../assets/styles/quiz.styles";
@@ -13,16 +13,18 @@ export default function ResultScreen({
   quizData,
 }) {
   const { user, updateUserScore } = useAuthStore();
+  const hasSavedStats = useRef(false);
 
-  const handleUpdateUserStats = async () => {
-    if (!user) return;
+  const handleUpdateUserStats = useCallback(async () => {
+    if (!user || hasSavedStats.current) return;
 
+    hasSavedStats.current = true;
     await updateUserScore(score, quizData);
-  };
+  }, [quizData, score, updateUserScore, user]);
 
   useEffect(() => {
     handleUpdateUserStats();
-  }, [score]);
+  }, [handleUpdateUserStats]);
 
   const router = useRouter();
   return (
@@ -39,7 +41,7 @@ export default function ResultScreen({
       />
       <Text style={styles.resultTitle}>Quiz Tamamlandı!</Text>
       <View style={styles.scoreCircle}>
-        <Text style={styles.scoreText}>{score}</Text>
+        <Text style={styles.resultScoreText}>{score}</Text>
         <Text style={styles.scoreLabel}>Puan</Text>
       </View>
       <Text style={styles.resultText}>

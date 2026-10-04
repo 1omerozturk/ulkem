@@ -1,12 +1,17 @@
-import { goBack } from "expo-router/build/global-state/routing";
 import Lottie from "lottie-react-native";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import {
+  BackHandler,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Animated, {
   FadeIn,
   FadeOut,
   FadeOutUp,
-  runOnJS,
   SlideInDown,
   SlideInUp,
   useSharedValue,
@@ -18,11 +23,26 @@ import { quizService } from "../service/quizService";
 import { useAuthStore } from "../store/authStore";
 import ResultScreen from "./ResultScreen";
 import TimerBar from "./TimerBar";
+import Loading from "./Loading";
+import NoticeModal from "./NoticeModal";
+import QuizMap from "./QuizMap";
+
+const quizCopy = {
+  plate: { title: "Plaka Avcısı", subtitle: "Kodundan şehri, şehrinden plakayı bul." },
+  region: { title: "Bölge Bilgini Sına", subtitle: "Şehirleri doğru coğrafi bölgeye yerleştir." },
+  district: { title: "İlçe Kaşifi", subtitle: "İlçelerin hangi şehre bağlı olduğunu keşfet." },
+  metropolitan: { title: "Büyükşehir Bilgisi", subtitle: "Büyükşehir statüsündeki illeri tanı." },
+  "map-province": { title: "Haritada İli Bul", subtitle: "Haritadaki vurguyu incele ve doğru ili seç." },
+  "country-capital": { title: "Başkent Ustası", subtitle: "Ülkeleri başkentleriyle eşleştir." },
+  "country-continent": { title: "Kıta Kaşifi", subtitle: "Ülkelerin hangi kıtada olduğunu bul." },
+  "country-flag": { title: "Bayrak Dedektifi", subtitle: "Bayrağı gör, ülkeyi tahmin et." },
+};
 
 export default function QuizScreen({ type }) {
+  const router = useRouter();
   const [resetTimerKey, setResetTimerKey] = useState(0);
-  const [gameStarted, setGameStarted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [phase, setPhase] = useState("intro");
+  const [notice, setNotice] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -35,69 +55,90 @@ export default function QuizScreen({ type }) {
     true_number: 0,
     false_number: 0,
   });
-  const { decrementLife, user } = useAuthStore();
+  const decrementLife = useAuthStore((state) => state.decrementLife);
 
   const timerRef = useRef(null);
   const progressAnim = useSharedValue(0);
   const confettiRef = useRef(null);
+  const closeNotice = () => setNotice(null);
 
-  console.log(user);
 
   const startGame = async () => {
-    decrementLife();
-    setLoading(true);
-    let newQuestions = [];
-
-    switch (type) {
-      case "district":
-        newQuestions = quizService.generateDistrictQuestions();
-        break;
-      case "region":
-        newQuestions = quizService.generateRegionQuestions();
-        break;
-      case "plate":
-        newQuestions = quizService.generatePlateQuestions();
-        break;
-      case "plate20":
-        newQuestions = quizService.generatePlateQuestions(20);
-        break;
-      case "country-capital":
-        newQuestions = await quizService.generateCountryCapitalQuestions();
-        break;
-      case "country-continent":
-        newQuestions = await quizService.generateCountryContinentQuestions();
-        break;
-      case "country-flag":
-        newQuestions = await quizService.generateCountryFlagQuestions();
-        break;
-      default:
-        break;
-    }
-
-    setQuestions(newQuestions);
-    setGameStarted(true);
-    setScore(0);
+    setPhase("loading");
+    setQuestions([]);
     setCurrentQuestion(0);
     setSelectedAnswer(null);
     setIsAnswered(false);
+    setScore(0);
     setTimeLeft(20);
-    setResetTimerKey((prev) => prev + 1);
-    setLoading(false);
-  };
+    setQuizData({ quiz_number: 0, question_number: 0, true_number: 0, false_number: 0 });
+    try {
+      let newQuestions = [];
+      switch (type) {
+        case "district":
+          newQuestions = await quizService.generateDistrictQuestions();
+          break;
+        case "region":
+          newQuestions = await quizService.generateRegionQuestions();
+          break;
+        case "plate":
+          newQuestions = await quizService.generatePlateQuestions();
+          break;
+        case "metropolitan":
+          newQuestions = await quizService.generateMetropolitanQuestions();
+          break;
+        case "map-province":
+          newQuestions = await quizService.generateMapProvinceQuestions();
+          break;
+        case "country-capital":
+          newQuestions = await quizService.generateCountryCapitalQuestions();
+          break;
+        case "country-continent":
+          newQuestions = await quizService.generateCountryContinentQuestions();
+          break;
+        case "country-flag":
+          newQuestions = await quizService.generateCountryFlagQuestions();
+          break;
+        default:
+          break;
+      }
 
-  const resetTimer = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setTimeLeft(20);
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          runOnJS(nextQuestion)();
-          return 20;
-        }
-        return prev - 1;
+      if (!newQuestions.length) {
+        throw new Error("Quiz için soru oluşturulamadı. Lütfen tekrar deneyin.");
+      }
+
+      const lifeSpent = await decrementLife();
+      if (!lifeSpent) {
+        setPhase("intro");
+        setNotice({
+          title: "Biraz mola zamanı",
+          message: "Canın kalmamış. Yeni canın 10 dakikada bir yenilenir.",
+          icon: "heart-dislike",
+          confirmLabel: "Canları gör",
+          cancelLabel: "Daha sonra",
+          onConfirm: () => { closeNotice(); router.push("/life"); },
+        });
+        return;
+      }
+
+      setQuestions(newQuestions);
+      setCurrentQuestion(0);
+      setSelectedAnswer(null);
+      setIsAnswered(false);
+      setTimeLeft(20);
+      setResetTimerKey((prev) => prev + 1);
+      setPhase("playing");
+    } catch (error) {
+      console.error("Quiz başlatılamadı:", error);
+      setPhase("intro");
+      setNotice({
+        title: "Quiz açılamadı",
+        message: error instanceof Error ? error.message : "Lütfen tekrar deneyin.",
+        icon: "cloud-offline-outline",
+        confirmLabel: "Anladım",
+        onConfirm: closeNotice,
       });
-    }, 1000);
+    }
   };
 
   const nextQuestion = useCallback(() => {
@@ -107,6 +148,21 @@ export default function QuizScreen({ type }) {
     setTimeLeft(20);
     setResetTimerKey((prev) => prev + 1);
   }, []);
+
+  const resetTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setTimeLeft(20);
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          nextQuestion();
+          return 20;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [nextQuestion]);
 
   const handleAnswer = (index) => {
     if (isAnswered) return;
@@ -153,26 +209,48 @@ export default function QuizScreen({ type }) {
   };
 
   useEffect(() => {
-    if (gameStarted && questions.length && currentQuestion < questions.length) {
-      resetTimer();
-      progressAnim.value = withTiming(1, { duration: 20000 });
+    if (phase === "playing" && questions.length && currentQuestion < questions.length) {
+      const frame = requestAnimationFrame(() => {
+        resetTimer();
+        progressAnim.value = withTiming(1, { duration: 20000 });
+      });
+      return () => cancelAnimationFrame(frame);
     }
-  }, [gameStarted, currentQuestion]);
+  }, [currentQuestion, phase, progressAnim, questions.length, resetTimer]);
+
+  useEffect(() => {
+    const isPlaying =
+      phase === "playing" && questions.length > 0 && currentQuestion < questions.length;
+    if (!isPlaying) return;
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        setNotice({
+          title: "Meydan okuma sürüyor",
+          message: "Oyundan çıkmadan önce bu turu tamamla. Her soru seni hedefe yaklaştırıyor!",
+          icon: "game-controller",
+          confirmLabel: "Devam et",
+          onConfirm: closeNotice,
+        });
+        return true;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [currentQuestion, phase, questions.length]);
 
   useEffect(() => {
     return () => clearInterval(timerRef.current);
   }, []);
 
-  if (!gameStarted) {
-    if (loading) {
-      return (
-        <View style={styles.container}>
-          <Text>Yükleniyor...</Text>
-        </View>
-      );
+  if (phase === "intro" || phase === "loading") {
+    if (phase === "loading") {
+      return <Loading message="Sorular hazırlanıyor…" />;
     }
 
     return (
+      <>
       <Animated.View
         style={styles.startContainer}
         entering={FadeIn.duration(500)}
@@ -183,46 +261,19 @@ export default function QuizScreen({ type }) {
           loop
           style={styles.lottieStart}
         />
-        <Text style={styles.startTitle}>
-          {type == "plate"
-            ? "İller ve Plakaları\n"
-            : type == "region"
-              ? "Bölgeler ve İller\n"
-              : type == "plate20"
-                ? "İller ve Plakaları - 20\n"
-                : type == "country-capital"
-                  ? "Ülke - Başkent\n"
-                  : type == "country-continent"
-                    ? "Ülke - Kıta\n"
-                    : type == "country-flag"
-                      ? "Ülke - Bayrak\n"
-                      : "İller ve İlçeleri\n"}{" "}
-          Bilgi Yarışması
-        </Text>
+        <Text style={styles.startTitle}>{quizCopy[type]?.title || "Bilgi Yarışması"}</Text>
         <Text style={styles.startSubtitle}>
-          {type === "country-capital"
-            ? "Dünya ülkelerini ve başkentlerini ne kadar iyi biliyorsun?"
-            : type === "country-continent"
-              ? "Ülkeleri hangi kıtada yer aldıklarını ne kadar iyi biliyorsun?"
-              : type === "country-flag"
-                ? "Dünya bayraklarını ne kadar iyi tanıyorsun?"
-                : "Türkiye'nin" +
-                  " " +
-                  (type == "plate"
-                    ? "şehir plakalarını"
-                    : type == "region"
-                      ? "bölgelerini ve şehirlerini"
-                      : "illerini ve ilçelerini") +
-                  " " +
-                  "ne kadar iyi biliyorsun?"}
+          {quizCopy[type]?.subtitle || "Hazırsan başlayalım!"}
         </Text>
         <TouchableOpacity style={styles.startButton} onPress={startGame}>
           <Text style={styles.startButtonText}>BAŞLA</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={goBack}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>GERİ</Text>
         </TouchableOpacity>
       </Animated.View>
+      <NoticeModal {...notice} visible={!!notice} onCancel={closeNotice} />
+      </>
     );
   }
 
@@ -243,14 +294,17 @@ export default function QuizScreen({ type }) {
     );
   }
 
-  if (currentQuestion >= questions.length) {
+  if (phase === "playing" && currentQuestion >= questions.length) {
     return (
-      <ResultScreen
-        score={score}
-        startGame={startGame}
-        confettiRef={confettiRef}
-        quizData={quizData}
-      />
+      <>
+        <ResultScreen
+          score={score}
+          startGame={startGame}
+          confettiRef={confettiRef}
+          quizData={quizData}
+        />
+        <NoticeModal {...notice} visible={!!notice} onCancel={closeNotice} />
+      </>
     );
   }
 
@@ -293,6 +347,9 @@ export default function QuizScreen({ type }) {
           exiting={FadeOutUp.duration(200)}
           style={styles.questionContainer}
         >
+          {questions[currentQuestion]?.map && (
+            <QuizMap {...questions[currentQuestion].map} />
+          )}
           {questions[currentQuestion]?.flagUrl && (
             <View style={styles.flagContainer}>
               <Image
@@ -322,12 +379,6 @@ export default function QuizScreen({ type }) {
               index === questions[currentQuestion]?.correctAnswer;
             const isSelected = index === selectedAnswer;
 
-            let bgColor = COLORS.cardBackground;
-            if (isAnswered) {
-              if (isCorrect) bgColor = "#4CAF50";
-              else if (isSelected) bgColor = "#F44336";
-            }
-
             return (
               <Animated.View
                 key={`${questions[currentQuestion].id + index}`}
@@ -344,11 +395,11 @@ export default function QuizScreen({ type }) {
                     {
                       backgroundColor: isAnswered
                         ? isCorrect
-                          ? "#4CAF50" // Doğru cevap yeşil
+                          ? COLORS.authSuccess
                           : isSelected
-                            ? "#F44336" // Yanlış cevap kırmızı
-                            : COLORS.cardBackground
-                        : COLORS.cardBackground,
+                            ? COLORS.authError
+                            : COLORS.authSurface
+                        : COLORS.authSurface,
                       transform: [{ scale: isSelected ? 1.05 : 1 }], // Seçildiğinde hafif büyütme efekti
                     },
                   ]}
@@ -386,6 +437,7 @@ export default function QuizScreen({ type }) {
         </View>
       </View>
       <View style={styles.footer}></View>
+      <NoticeModal {...notice} visible={!!notice} onCancel={closeNotice} />
     </View>
   );
 }

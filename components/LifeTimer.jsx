@@ -1,44 +1,63 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useRef, useState } from "react";
+import { Text, View } from "react-native";
+import { COLORS } from "../constants/Colors";
 import { useAuthStore } from "../store/authStore";
-import { COLORS } from "@/constants/Colors";
+import styles from "../assets/styles/life.styles";
 
-const LifeTimer = () => {
-  const { getRemainingTimeForNextLife } = useAuthStore();
+export default function LifeTimer() {
+  const lives = useAuthStore((state) => state.user?.lives ?? 0);
+  const getRemainingTimeForNextLife = useAuthStore(
+    (state) => state.getRemainingTimeForNextLife,
+  );
+  const refreshLivesIfNeeded = useAuthStore(
+    (state) => state.refreshLivesIfNeeded,
+  );
   const [timeLeft, setTimeLeft] = useState(getRemainingTimeForNextLife());
+  const refreshInProgress = useRef(false);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTimeLeft(getRemainingTimeForNextLife());
-    }, 1000); // Her saniye güncelleme
+    const refreshIfReady = async () => {
+      if (lives >= 10 || refreshInProgress.current) return;
+      refreshInProgress.current = true;
+      try {
+        await refreshLivesIfNeeded();
+      } finally {
+        refreshInProgress.current = false;
+      }
+    };
 
+    refreshIfReady();
+    const interval = setInterval(() => {
+      const remaining = getRemainingTimeForNextLife();
+      setTimeLeft(remaining);
+      if (remaining === "00:00") refreshIfReady();
+    }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [getRemainingTimeForNextLife, lives, refreshLivesIfNeeded]);
+
+  const isFull = lives >= 10;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>{getRemainingTimeForNextLife()}</Text>
+    <View style={styles.timerCard}>
+      <View style={styles.timerIcon}>
+        <Ionicons
+          name={isFull ? "checkmark-circle" : "time-outline"}
+          size={23}
+          color={isFull ? COLORS.authSuccess : COLORS.menuWorldAccent}
+        />
+      </View>
+      <View style={styles.timerCopy}>
+        <Text style={styles.timerTitle}>
+          {isFull ? "Canların hazır" : "Sıradaki canın"}
+        </Text>
+        <Text style={styles.timerSubtitle}>
+          {isFull ? "Tüm canların dolu." : "Yeni can için kalan süre"}
+        </Text>
+      </View>
+      <Text style={[styles.timerValue, isFull && styles.timerValueFull]}>
+        {isFull ? "10/10" : timeLeft}
+      </Text>
     </View>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.white,
-    padding:2,
-    borderColor:COLORS.black,
-    borderWidth:1,
-    borderRadius:5,
-    elevation:5,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft:4,
-    },
-  text: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#ff4757",
-  },
-});
-
-export default LifeTimer;
+}

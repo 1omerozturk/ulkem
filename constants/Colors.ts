@@ -14,4 +14,26 @@ export const COLORS = {
   true:"#24D721FF",
   false:"#FF0000FF",
   score:"#FFE600FF",
+
+  // Auth screens: calm, high-contrast colors for a broad age range.
+  authBackground: "#F1F6F3",
+  authSurface: "#FFFFFF",
+  authSurfaceTint: "#E7F1EC",
+  authPrimary: "#176B5B",
+  authPrimaryPressed: "#105448",
+  authPrimarySoft: "#DCEDE6",
+  authAccent: "#E6A23A",
+  authText: "#203730",
+  authTextMuted: "#687A73",
+  authPlaceholder: "#82928C",
+  authBorder: "#D8E5DE",
+  authInput: "#F7FAF8",
+  authError: "#B84444",
+  authSuccess: "#287A54",
+  authShadow: "#244A3D",
+
+  menuWorld: "#E7F0F8",
+  menuWorldAccent: "#4B79A8",
+  menuTurkey: "#F8ECE8",
+  menuTurkeyAccent: "#C75D52",
 };

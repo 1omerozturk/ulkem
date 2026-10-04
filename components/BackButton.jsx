@@ -1,32 +1,49 @@
 import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import { COLORS } from "../constants/Colors";
 
-export default function BackButton() {
-  const navigation = useNavigation();
+export default function BackButton({ onPress, accessibilityLabel = "Geri dön" }) {
+  const router = useRouter();
+
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(tabs)");
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        activeOpacity={0.8}
-        style={styles.button}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="arrow-back-circle" size={36} color={COLORS.textDark} />
-      </TouchableOpacity>
-    </View>
+    <TouchableOpacity
+      activeOpacity={0.75}
+      style={styles.button}
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      hitSlop={6}
+    >
+      <Ionicons name="arrow-back" size={22} color={COLORS.authText} />
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-  },
   button: {
-    padding: 10,
+    position: "absolute",
+    top: 14,
+    left: 16,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.authSurface,
+    borderWidth: 1,
+    borderColor: COLORS.authBorder,
   },
 });

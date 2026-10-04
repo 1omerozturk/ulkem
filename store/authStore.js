@@ -1,13 +1,9 @@
 import * as SecureStore from 'expo-secure-store'
 import { create } from 'zustand'
 import {
-  db,
   getUser,
-  getUsers,
-  getUserWithPassword,
   getUserWithQuizData,
   getUserWithUserName,
-  initDB,
   insertUser,
   updateUserLives,
   updateUserLivesToBuy,
@@ -95,21 +91,29 @@ export const useAuthStore = create((set, get) => ({
 
   decrementLife: async () => {
     try {
+      await get().refreshLivesIfNeeded()
       const user = get().user
-      if (!user || user.lives <= 0) return
+      if (!user || user.lives <= 0) return false
 
       const updatedLives = user.lives - 1
       const now = new Date().toISOString()
-      await updateUserLives(user.username, updatedLives, now)
+      const savedLifeDate = Date.parse(user.last_life_update)
+      const lifeTimerStart =
+        user.lives >= 10 || !Number.isFinite(savedLifeDate)
+          ? now
+          : user.last_life_update
+      await updateUserLives(user.username, updatedLives, lifeTimerStart)
       const updatedUser = {
         ...user,
         lives: updatedLives,
-        last_life_update: now,
+        last_life_update: lifeTimerStart,
       }
       set({ user: updatedUser })
       await SecureStore.setItemAsync('user', JSON.stringify(updatedUser))
+      return true
     } catch (error) {
       console.error(error)
+      return false
     }
   },
 
@@ -161,7 +165,16 @@ export const useAuthStore = create((set, get) => ({
       if (!user) return
 
       const now = new Date()
-      const lastUpdate = new Date(user.last_life_update)
+      const savedLifeDate = Date.parse(user.last_life_update)
+      if (!Number.isFinite(savedLifeDate)) {
+        const timestamp = now.toISOString()
+        await updateUserLives(user.username, user.lives, timestamp)
+        const updatedUser = { ...user, last_life_update: timestamp }
+        set({ user: updatedUser })
+        await SecureStore.setItemAsync('user', JSON.stringify(updatedUser))
+        return
+      }
+      const lastUpdate = new Date(savedLifeDate)
       const minutesPassed = (now.getTime() - lastUpdate.getTime()) / (1000 * 60)
 
       if (user.lives < 10 && minutesPassed >= 10) {
@@ -190,13 +203,15 @@ export const useAuthStore = create((set, get) => ({
     if (!user) return '00:00'
 
     const now = new Date()
-    const lastUpdate = new Date(user.last_life_update)
+    const lastUpdateTimestamp = Date.parse(user.last_life_update)
 
     // Kullanıcı max cana ulaştıysa süre göstermeye gerek yok
     if (user.lives >= 10) return '00:00'
 
     const timeUntilNextLife = 10 * 60 * 1000 // 10 dakika sonra yeni can eklenecek
-    const elapsedTime = now.getTime() - lastUpdate.getTime()
+    if (!Number.isFinite(lastUpdateTimestamp)) return '10:00'
+
+    const elapsedTime = Math.max(0, now.getTime() - lastUpdateTimestamp)
     const remainingTime = Math.max(timeUntilNextLife - elapsedTime, 0)
 
     const minutes = Math.floor(remainingTime / (1000 * 60))
@@ -212,7 +227,7 @@ export const useAuthStore = create((set, get) => ({
   buyLife: async () => {
     try {
       const user = get().user
-      if (!user || user.lives >= 10 || user.score < 500) return
+      if (!user || user.lives >= 10 || user.score < 500) return false
 
       const updatedLives = user.lives + 1
       const updatedScore = user.score - 500
@@ -224,12 +239,14 @@ export const useAuthStore = create((set, get) => ({
         ...user,
         lives: updatedLives,
         score: updatedScore,
-        last_life_update: user.lastUpdate,
+        last_life_update: user.last_life_update || new Date().toISOString(),
       }
       set({ user: updatedUser })
       await SecureStore.setItemAsync('user', JSON.stringify(updatedUser))
+      return true
     } catch (error) {
       console.error('Buy Life Error:', error)
+      return false
     }
   },
 }))

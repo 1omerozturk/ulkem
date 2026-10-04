@@ -1,57 +1,73 @@
-// RootLayout.tsx
 import React, { useEffect, useState } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import SafeScreen from "../components/SafeScreen";
-import { useAuthStore } from "../store/authStore"; // authStore dosyan
-import { deleteUsers, getUsers, initDB } from "@/model/db";
+import { useAuthStore } from "../store/authStore";
+import { initDB } from "@/model/db";
+import Loading from "@/components/Loading";
+import { COLORS } from "@/constants/Colors";
 
-export default function RootLayout() {
+function AppNavigator() {
   const router = useRouter();
   const segments = useSegments();
-  const { checkAuth, user } = useAuthStore();
-  const [loading, setLoading] = useState(true);
+  const user = useAuthStore((state) => state.user);
+  const checkAuth = useAuthStore((state) => state.checkAuth);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const init = async () => {
-      initDB();
-      // const users = await getUsers();
-      // console.log("users:", users);
-      if (user) {
-        console.log(user);
+    let isMounted = true;
+
+    const prepareApp = async () => {
+      try {
+        await initDB();
+        await checkAuth();
+      } catch (error) {
+        console.error("Uygulama başlatılamadı:", error);
+      } finally {
+        if (isMounted) setIsReady(true);
       }
-      await checkAuth();
-      setLoading(false);
     };
-    init();
-  }, []);
+
+    prepareApp();
+    return () => {
+      isMounted = false;
+    };
+  }, [checkAuth]);
 
   useEffect(() => {
-    const inAuthGroup = segments[0] === "(auth)";
-    if (!loading) {
-      if (!user && !inAuthGroup) {
-        router.replace("/(auth)");
-      } else if (user && inAuthGroup) {
-        router.replace("/(tabs)");
-      }
-    }
-  }, [segments, user, loading]);
+    if (!isReady) return;
 
-  useEffect(() => {
-    if (user !== undefined) {
-      setLoading(false);
+    const isInAuthGroup = segments[0] === "(auth)";
+    if (!user && !isInAuthGroup) {
+      router.replace("/(auth)");
+    } else if (user && isInAuthGroup) {
+      router.replace("/(tabs)");
     }
-  }, [user]);
+  }, [isReady, segments, user, router]);
 
+  if (!isReady) {
+    return <Loading message="Dünyalar keşfe hazırlanıyor…" />;
+  }
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: COLORS.authBackground },
+      }}
+    >
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(tabs)" />
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <SafeScreen>
-        <Stack screenOptions={{ headerShown: false }}>
-          {/* Örnek ekran grupları */}
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
+        <AppNavigator />
       </SafeScreen>
       <StatusBar style="dark" />
     </SafeAreaProvider>

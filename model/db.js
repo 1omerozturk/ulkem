@@ -68,7 +68,6 @@ export const getUser = async (id) => {
     [user.id],
   )
 
-  console.log(user)
   return {
     ...user,
     quizData: (quizData ??= {
@@ -86,8 +85,7 @@ export const getUserWithUserName = async (username) => {
     'SELECT * FROM users WHERE username = ?',
     [username],
   )
-  console.log(result)
-  return result ?? null
+    return result ?? null
 }
 
 export const getUsers = async () => {

@@ -1,514 +1,348 @@
-import citiesData from "../model/data.json";
+type Province = {
+  id: number;
+  name: string;
+  region?: { tr?: string; en?: string };
+  isMetropolitan: boolean;
+};
 
-export const quizService = {
-  /*  generateRegionQuestions: () => {
-    const allCities = citiesData.data;
-    if (!allCities || allCities.length === 0) {
-      console.error("Şehir verisi bulunamadı veya boş.");
-      return [];
-    }
+type District = { id: number; name: string; provinceId: number };
 
-    const allRegionNames = [
-      ...new Set(allCities.map((city) => city.region.tr)),
-    ];
+// Türkiye quizleri uygulama paketindeki sabit veriden üretilir; ağ bağlantısı gerekmez.
+const provinces = require("../model/provinces.json") as Province[];
+const districts = require("../model/districts.json") as District[];
+const mapProvinces = require("../assets/maps/turkeyProvinces.json") as {
+  id: number;
+  name: string;
+  paths: string[];
+}[];
 
-    // Diziyi karıştıran yardımcı fonksiyon
-    const shuffleArray = (array: any) =>
-      [...array].sort(() => 0.5 - Math.random());
+type Country = {
+  name: { common?: string; official?: string };
+  capital?: string[];
+  region?: string;
+  continents?: string[];
+  flags?: { png?: string; svg?: string };
+};
 
-    // Her biri farklı bir bölgeden olmak üzere soru üretilecek ana şehirleri seçme
-    const shuffledInitialCities = shuffleArray(allCities);
-    const anchorCities = [];
-    const selectedRegions = new Set();
+type QuizQuestion = {
+  id: number;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  type?: boolean;
+  flagUrl?: string;
+};
 
-    for (const city of shuffledInitialCities) {
-      if (!selectedRegions.has(city.region.tr)) {
-        anchorCities.push(city);
-        selectedRegions.add(city.region.tr);
-      }
-    }
-    // En fazla 10 farklı bölgeden soru üretelim (isteğe bağlı olarak değiştirilebilir)
-    const finalAnchorCities = anchorCities.slice(0, 7);
-    const questions = finalAnchorCities.flatMap((anchorCity) => {
-      const questionsForThisAnchor = [];
-      const correctRegionOfAnchor = anchorCity.region.tr;
-      const correctCityNameOfAnchor = anchorCity.name;
+const shuffle = <T,>(values: T[]): T[] => {
+  const result = [...values];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [result[index], result[randomIndex]] = [result[randomIndex], result[index]];
+  }
+  return result;
+};
 
-      // --- Soru Tipi 1: "[BÖLGE] bölgesi ilidir." (Olumlu - Şıklarda şehirler) ---
-      const citiesNotInAnchorRegion = shuffleArray(
-        allCities.filter((c) => c.region.tr !== correctRegionOfAnchor)
-      );
-      if (citiesNotInAnchorRegion.length >= 3) {
-        const wrongCityOptions = citiesNotInAnchorRegion
-          .slice(0, 3)
-          .map((c) => c.name);
+const sample = <T,>(values: T[], size: number): T[] =>
+  shuffle(values).slice(0, size);
 
-        const optionsArray = shuffleArray([
-          correctCityNameOfAnchor,
-          ...wrongCityOptions,
-        ]);
-        const correctAnswerValue = correctCityNameOfAnchor;
-        questionsForThisAnchor.push({
-          id: Math.floor(Math.random() * 100000) + 1,
-          question: `Aşağıdakilerden hangisi ${correctRegionOfAnchor} bölgesi ilidir?`,
-          options: optionsArray,
-          correctAnswer: optionsArray.indexOf(correctAnswerValue), // İndeksi ata
-          type: true,
-        });
-      }
+const makeQuestion = (
+  question: string,
+  options: string[],
+  correctOption: string,
+  type?: boolean,
+): QuizQuestion => {
+  const shuffledOptions = shuffle([...new Set(options)]);
+  const correctAnswer = shuffledOptions.indexOf(correctOption);
+  if (shuffledOptions.length !== 4 || correctAnswer < 0) {
+    throw new Error("Quiz için dört farklı cevap seçeneği oluşturulamadı.");
+  }
 
-      // --- Soru Tipi 2: "[BÖLGE] bölgesi ili değildir." (Olumsuz - Şıklarda şehirler) ---
-      const citiesActuallyInAnchorRegion = allCities.filter(
-        (c) => c.region.tr === correctRegionOfAnchor
-      );
-      const citiesActuallyNotInAnchorRegion = allCities.filter(
-        (c) => c.region.tr !== correctRegionOfAnchor
-      );
+  return {
+    id: Date.now() + Math.floor(Math.random() * 1_000_000),
+    question,
+    options: shuffledOptions,
+    correctAnswer,
+    ...(type === undefined ? {} : { type }),
+  };
+};
 
-      if (
-        citiesActuallyNotInAnchorRegion.length > 0 &&
-        citiesActuallyInAnchorRegion.length >= 3
-      ) {
-        const correctAnswerCityForQ2Value = shuffleArray(
-          // Değişken adını netleştirelim
-          citiesActuallyNotInAnchorRegion
-        )[0].name;
-        const wrongOptionsForQ2 = shuffleArray(citiesActuallyInAnchorRegion)
-          .filter((c) => c.name !== correctAnswerCityForQ2Value)
-          .slice(0, 3)
-          .map((c) => c.name);
+const getCountryName = (country: Country) =>
+  country.name?.common || country.name?.official || "Bilinmeyen ülke";
 
-        if (wrongOptionsForQ2.length === 3) {
-          const optionsArray = shuffleArray([
-            correctAnswerCityForQ2Value,
-            ...wrongOptionsForQ2,
-          ]);
-          questionsForThisAnchor.push({
-            id: Math.floor(Math.random() * 100000) + 1,
-            question: `Aşağıdakilerden hangisi ${correctRegionOfAnchor} bölgesi ili DEĞİLDİR?`,
-            options: optionsArray,
-            correctAnswer: optionsArray.indexOf(correctAnswerCityForQ2Value), // İndeksi ata
-            type: false,
-          });
+let countriesRequest: Promise<Country[]> | null = null;
+
+async function fetchCountries(): Promise<Country[]> {
+  if (!countriesRequest) {
+    countriesRequest = fetch(
+      "https://restcountries.com/v3.1/all?fields=name,capital,region,flags,continents",
+    )
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Ülke verisi alınamadı (HTTP ${response.status}).`);
         }
-      }
-
-      // --- Soru Tipi 3: "[İL] hangi bölgededir?" (Olumlu - Şıklarda bölgeler) ---
-      const otherRegions = shuffleArray(
-        allRegionNames.filter((r) => r !== correctRegionOfAnchor)
-      );
-      if (otherRegions.length >= 3) {
-        const wrongRegionOptions = otherRegions.slice(0, 3);
-        const correctAnswerValue = correctRegionOfAnchor;
-        const optionsArray = shuffleArray([
-          correctAnswerValue,
-          ...wrongRegionOptions,
-        ]);
-
-        questionsForThisAnchor.push({
-          id: Math.floor(Math.random() * 100000) + 1,
-          question: `${correctCityNameOfAnchor} hangi bölgededir?`,
-          options: optionsArray,
-          correctAnswer: optionsArray.indexOf(correctAnswerValue), // İndeksi ata
-          type: true,
-        });
-      }
-      return questionsForThisAnchor;
-    });
-
-    return shuffleArray(questions.slice(0, 10)); // Tüm üretilen soruları en sonda karıştır
-  }, */
-
-  generateRegionQuestions: () => {
-    const allCities = citiesData.data;
-    if (!allCities || allCities.length === 0) {
-      console.error("Şehir verisi bulunamadı veya boş.");
-      return [];
-    }
-
-    const allRegionNames = [
-      ...new Set(allCities.map((city) => city.region.tr)),
-    ];
-
-    // Diziyi karıştıran yardımcı fonksiyon
-    const shuffleArray = (array: any) =>
-      [...array].sort(() => 0.5 - Math.random());
-
-    const shuffledCities = shuffleArray(allCities);
-    const selectedCities = shuffledCities.slice(0, 10);
-    const questions = selectedCities.flatMap((city) => {
-      const correctRegion = city.region.tr;
-      const correctCityName = city.name;
-
-      // --- Soru Tipi 1: "[İL] hangi bölgededir?" ---
-      const otherRegions = shuffleArray(
-        allRegionNames.filter((r) => r !== correctRegion),
-      ).slice(0, 3);
-      const regionOptions = shuffleArray([correctRegion, ...otherRegions]);
-
-      const question1 = {
-        id: Math.floor(Math.random() * 100000) + 1,
-        question: `${correctCityName} hangi bölgededir?`,
-        options: regionOptions,
-        correctAnswer: regionOptions.indexOf(correctRegion),
-        type: "true",
-      };
-
-      // --- Soru Tipi 2: "Hangisi [BÖLGE] bölgesi ilidir?" ---
-      const wrongCities = shuffleArray(
-        allCities.filter((c) => c.region.tr !== correctRegion),
-      ).slice(0, 3);
-      const cityOptions = shuffleArray([
-        correctCityName,
-        ...wrongCities.map((c) => c.name),
-      ]);
-
-      const question2 = {
-        id: Math.floor(Math.random() * 100000) + 1,
-        question: `Hangisi ${correctRegion} bölgesi ilidir?`,
-        options: cityOptions,
-        correctAnswer: cityOptions.indexOf(correctCityName),
-        type: "true",
-      };
-
-      // --- Soru Tipi 3: "Hangisi [BÖLGE] bölgesi ili değildir?" ---
-      const wrongRegionCity = shuffleArray(
-        allCities.filter((c) => c.region.tr !== correctRegion),
-      )[0].name;
-      const correctCities = shuffleArray(
-        allCities.filter((c) => c.region.tr === correctRegion),
-      ).slice(0, 3);
-      const negationOptions = shuffleArray([
-        wrongRegionCity,
-        ...correctCities.map((c) => c.name),
-      ]);
-
-      const question3 = {
-        id: Math.floor(Math.random() * 100000) + 1,
-        question: `Hangisi ${correctRegion} bölgesi ili **DEĞİLDİR**?`,
-        options: negationOptions,
-        correctAnswer: negationOptions.indexOf(wrongRegionCity),
-        type: "false",
-      };
-
-      return [question1, question2, question3];
-    });
-
-    return shuffleArray(questions).slice(0, 10);
-  },
-
-  generatePlateQuestions: (size?: number) => {
-    const shuffled = [...citiesData.data].sort(() => 0.5 - Math.random());
-    const selectedCities = new Set();
-
-    return shuffled
-      .filter((city) => {
-        if (selectedCities.has(city.id)) return false;
-        selectedCities.add(city.id);
-        return true;
+        const data = (await response.json()) as Country[];
+        return data.filter(
+          (country) =>
+            getCountryName(country) &&
+            country.capital?.length &&
+            country.region &&
+            country.continents?.length,
+        );
       })
-      .slice(0, size ? size : 10)
-      .map((city) => {
-        // Rastgele soru tipi seç (0: Plakadan şehir, 1: Şehirden plaka)
-        const questionType = Math.floor(Math.random() * 2);
-
-        if (questionType === 0) {
-          // Tip 1: "XX plakalı il hangisidir?" (Şehir seçenekleri)
-          const wrongOptions = citiesData.data
-            .filter((c) => c.id !== city.id)
-            .sort(() => 0.5 - Math.random())
-            .map((c) => c.name);
-
-          const uniqueOptions = new Set([city.name]);
-          wrongOptions.forEach((option) => {
-            if (uniqueOptions.size < 4) uniqueOptions.add(option);
-          });
-
-          const options = [...uniqueOptions].sort(() => 0.5 - Math.random());
-
-          return {
-            id: Math.floor(Math.random() * 100000) + 1,
-            question: `${
-              city.id < 10 ? "0".concat(city.id.toString()) : city.id.toString()
-            } plakalı il hangisidir?`,
-            options,
-            correctAnswer: options.indexOf(city.name),
-          };
-        } else {
-          // Tip 2: "YY ilinin plaka kodu kaçtır?" (Plaka seçenekleri)
-          const wrongOptions = citiesData.data
-            .filter((c) => c.id !== city.id)
-            .sort(() => 0.5 - Math.random())
-            .map((c) =>
-              c.id < 10 ? "0".concat(c.id.toString()) : c.id.toString(),
-            );
-
-          const uniqueOptions = new Set([
-            city.id < 10 ? "0".concat(city.id.toString()) : city.id.toString(),
-          ]);
-          wrongOptions.forEach((option) => {
-            if (uniqueOptions.size < 4) uniqueOptions.add(option);
-          });
-
-          const options = [...uniqueOptions].sort(() => 0.5 - Math.random());
-
-          return {
-            id: Math.floor(Math.random() * 100000) + 1,
-            question: `${city.name} ilinin plaka kodu kaçtır?`,
-            options,
-            correctAnswer: options.indexOf(
-              city.id < 10
-                ? "0".concat(city.id.toString())
-                : city.id.toString(),
-            ),
-          };
-        }
+      .catch((error) => {
+        countriesRequest = null;
+        throw error;
       });
-  },
+  }
+  return countriesRequest;
+}
 
-  // cache for countries data to avoid multiple fetches
-  _countriesCache: null as any[] | null,
+async function createRegionQuestions(size: number): Promise<QuizQuestion[]> {
+  const validProvinces = provinces.filter((province) => province.region?.tr);
+  const regions = [...new Set(validProvinces.map((province) => province.region!.tr!))];
+  if (regions.length < 4) {
+    throw new Error("Bölge quizini hazırlamak için yeterli veri bulunamadı.");
+  }
 
-  fetchCountryData: async () => {
-    // if we already fetched once, reuse
-    if (quizService._countriesCache) {
-      return quizService._countriesCache;
-    }
-
-    try {
-      // include name (Turkish translations), capital, region, flags, continents
-      const url =
-        "https://restcountries.com/v3.1/all?fields=name,capital,region,flags,continents";
-      const res = await fetch(url);
-      if (!res.ok) {
-        console.error("Ülke verisi alınamadı", res.status);
-        return [];
-      }
-      const data = await res.json();
-      // basic filtering to ensure required fields exist
-      const filtered = data.filter(
-        (c: any) =>
-          (c?.name?.common || c?.name?.official) &&
-          Array.isArray(c.capital) &&
-          c.capital.length > 0 &&
-          typeof c.region === "string" &&
-          c?.flags?.png &&
-          Array.isArray(c.continents) &&
-          c.continents.length > 0,
+  return sample(validProvinces, size).map((province, index) => {
+    const region = province.region!.tr!;
+    if (index % 2 === 0) {
+      const otherRegions = sample(regions.filter((item) => item !== region), 3);
+      return makeQuestion(
+        `${province.name} hangi bölgemizdedir?`,
+        [region, ...otherRegions],
+        region,
       );
-      quizService._countriesCache = filtered;
-      return filtered;
-    } catch (err) {
-      console.error("RESTCountries API hatası", err);
-      return [];
     }
-  },
 
-  generateCountryCapitalQuestions: async (size: number = 10) => {
-    const allCountries = await quizService.fetchCountryData();
-    if (!allCountries || allCountries.length === 0) return [];
+    const otherRegionProvinces = validProvinces.filter(
+      (item) => item.region?.tr !== region,
+    );
+    const sameRegionProvinces = validProvinces.filter(
+      (item) => item.region?.tr === region,
+    );
+    const answerProvince = sample(otherRegionProvinces, 1)[0];
+    const wrongProvinces = sample(sameRegionProvinces, 3);
+    if (wrongProvinces.length !== 3) {
+      throw new Error(`${region} bölgesi için yeterli il verisi bulunamadı.`);
+    }
 
-    const shuffleArray = (array: any[]) =>
-      [...array].sort(() => 0.5 - Math.random());
+    const options = sample([answerProvince, ...wrongProvinces], 4).map(
+      (item) => item.name,
+    );
+    const correctName = answerProvince.name;
+    return makeQuestion(
+      `Hangisi ${region} bölgesi ili değildir?`,
+      options,
+      correctName,
+      false,
+    );
+  });
+}
 
-    const shuffled = shuffleArray(allCountries);
-    const selected = shuffled.slice(0, size);
+async function createPlateQuestions(size: number): Promise<QuizQuestion[]> {
+  if (provinces.length < 4) {
+    throw new Error("Plaka quizini hazırlamak için yeterli il verisi bulunamadı.");
+  }
 
-    const questions: any[] = [];
+  return sample(provinces, size).map((province) => {
+    const plate = String(province.id).padStart(2, "0");
+    if (Math.random() < 0.5) {
+      const distractors = sample(
+        provinces.filter((item) => item.id !== province.id),
+        3,
+      ).map((item) => item.name);
+      return makeQuestion(
+        `${plate} plakalı il hangisidir?`,
+        [province.name, ...distractors],
+        province.name,
+      );
+    }
 
-    selected.forEach((country: any) => {
-      const countryName =
-        country.name.common || country.name.official || "Bilinmeyen";
-      const capital = country.capital[0];
+    const distractors = sample(
+      provinces.filter((item) => item.id !== province.id),
+      3,
+    ).map((item) => String(item.id).padStart(2, "0"));
+    return makeQuestion(
+      `${province.name} ilinin plaka kodu kaçtır?`,
+      [plate, ...distractors],
+      plate,
+    );
+  });
+}
 
-      // 1. Capital -> Country
-      const wrongCountries = shuffleArray(
-        allCountries.filter(
-          (c: any) => (c.name.common || c.name.official) !== countryName,
-        ),
-      )
-        .slice(0, 3)
-        .map((c: any) => c.name.common || c.name.official);
-      const opts1 = shuffleArray([countryName, ...wrongCountries]);
-      questions.push({
-        id: Math.floor(Math.random() * 100000) + 1,
-        question: `${capital} başkentli ülke hangisidir?`,
-        options: opts1,
-        correctAnswer: opts1.indexOf(countryName),
-      });
+async function createDistrictQuestions(size: number): Promise<QuizQuestion[]> {
+  const districtNameCounts = new Map<string, number>();
+  districts.forEach((district) => {
+    districtNameCounts.set(
+      district.name,
+      (districtNameCounts.get(district.name) ?? 0) + 1,
+    );
+  });
+  const uniqueDistricts = districts.filter(
+    (district) => districtNameCounts.get(district.name) === 1,
+  );
 
-      // 2. Country -> Capital
-      const wrongCapitals = shuffleArray(
-        allCountries
-          .filter(
-            (c: any) => (c.name.common || c.name.official) !== countryName,
-          )
-          .filter((c: any) => Array.isArray(c.capital) && c.capital.length > 0),
-      )
-        .slice(0, 3)
-        .map((c: any) => c.capital[0]);
-      const opts2 = shuffleArray([capital, ...wrongCapitals]);
-      questions.push({
-        id: Math.floor(Math.random() * 100000) + 1,
-        question: `${countryName} ülkesinin başkenti hangisidir?`,
-        options: opts2,
-        correctAnswer: opts2.indexOf(capital),
-      });
-    });
-
-    return shuffleArray(questions).slice(0, size);
-  },
-
-  generateCountryContinentQuestions: async (size: number = 10) => {
-    const allCountries = await quizService.fetchCountryData();
-    if (!allCountries || allCountries.length === 0) return [];
-
-    const shuffleArray = (array: any[]) =>
-      [...array].sort(() => 0.5 - Math.random());
-
-    const shuffled = shuffleArray(allCountries);
-    const selected = shuffled.slice(0, size);
-
-    const questions: any[] = [];
-
-    selected.forEach((country: any) => {
-      const countryName =
-        country.name.common || country.name.official || "Bilinmeyen";
-      const continent = country.continents[0];
-
-      const allContinents = Array.from(
-        new Set(allCountries.map((c: any) => c.continents[0])),
-      ) as string[];
-      const wrongContinents = shuffleArray(
-        allContinents.filter((c) => c !== continent),
-      ).slice(0, 3);
-      const opts = shuffleArray([continent, ...wrongContinents]);
-
-      questions.push({
-        id: Math.floor(Math.random() * 100000) + 1,
-        question: `${countryName} hangi kıtada yer almaktadır?`,
-        options: opts,
-        correctAnswer: opts.indexOf(continent),
-      });
-    });
-
-    return shuffleArray(questions).slice(0, size);
-  },
-
-  generateCountryFlagQuestions: async (size: number = 10) => {
-    const allCountries = await quizService.fetchCountryData();
-    if (!allCountries || allCountries.length === 0) return [];
-
-    const shuffleArray = (array: any[]) =>
-      [...array].sort(() => 0.5 - Math.random());
-
-    const shuffled = shuffleArray(allCountries);
-    const selected = shuffled.slice(0, size);
-
-    const questions: any[] = [];
-
-    selected.forEach((country: any) => {
-      const countryName =
-        country.name.common || country.name.official || "Bilinmeyen";
-      const flagUrl = country.flags?.png || "";
-
-      const wrongCountries = shuffleArray(
-        allCountries.filter(
-          (c: any) => (c.name.common || c.name.official) !== countryName,
-        ),
-      )
-        .slice(0, 3)
-        .map((c: any) => c.name.common || c.name.official);
-      const opts = shuffleArray([countryName, ...wrongCountries]);
-
-      questions.push({
-        id: Math.floor(Math.random() * 100000) + 1,
-        question: `Bu bayrak hangi ülkeye aittir?`,
-        options: opts,
-        correctAnswer: opts.indexOf(countryName),
-        flagUrl,
-      });
-    });
-
-    return shuffleArray(questions).slice(0, size);
-  },
-
-  generateDistrictQuestions: () => {
-    const shuffledCities = [...citiesData.data].sort(() => 0.5 - Math.random());
-
-    const districtCountMap = new Map<string, number>();
-    citiesData.data.forEach((city) => {
-      city.districts.forEach((district) => {
-        const name = district.name;
-        districtCountMap.set(name, (districtCountMap.get(name) || 0) + 1);
-      });
-    });
-
-    const uniqueDistricts = citiesData.data.flatMap((city) =>
-      city.districts
-        .filter((d) => districtCountMap.get(d.name) === 1)
-        .map((d) => ({
-          name: d.name,
-          cityName: city.name,
-        })),
+  const questions: QuizQuestion[] = [];
+  for (const province of provinces) {
+    const localDistricts = uniqueDistricts.filter(
+      (district) => district.provinceId === province.id,
+    );
+    const otherDistricts = uniqueDistricts.filter(
+      (district) => district.provinceId !== province.id,
     );
 
-    return shuffledCities
-      .map((city) => {
-        const cityDistricts = city.districts
-          .filter((d) => districtCountMap.get(d.name) === 1)
-          .map((d) => d.name);
+    if (localDistricts.length > 0 && otherDistricts.length >= 3) {
+      const correct = sample(localDistricts, 1)[0];
+      const distractors = sample(otherDistricts, 3);
+      questions.push(
+        makeQuestion(
+          `Hangisi ${province.name} ilimizin ilçesidir?`,
+          [correct.name, ...distractors.map((district) => district.name)],
+          correct.name,
+          true,
+        ),
+      );
+    }
 
-        const isPositive = cityDistricts.length > 0 && Math.random() > 0.5;
+    if (localDistricts.length >= 3 && otherDistricts.length > 0) {
+      const correct = sample(otherDistricts, 1)[0];
+      const distractors = sample(localDistricts, 3);
+      questions.push(
+        makeQuestion(
+          `Hangisi ${province.name} ilimizin ilçesi değildir?`,
+          [correct.name, ...distractors.map((district) => district.name)],
+          correct.name,
+          false,
+        ),
+      );
+    }
+  }
 
-        let options: string[] = [];
-        let correctAnswer: number;
+  const selected = sample(questions, size);
+  if (selected.length < size) {
+    throw new Error("İlçe quizini hazırlamak için yeterli veri bulunamadı.");
+  }
+  return selected;
+}
 
-        if (isPositive) {
-          // Pozitif soru
-          const correct = cityDistricts.sort(() => 0.5 - Math.random())[0];
+async function createMetropolitanQuestions(size: number): Promise<QuizQuestion[]> {
+  const metropolitan = provinces.filter((province) => province.isMetropolitan);
+  const otherProvinces = provinces.filter((province) => !province.isMetropolitan);
+  if (metropolitan.length < 3 || otherProvinces.length < 3) {
+    throw new Error("Büyükşehir quizini hazırlamak için yeterli veri bulunamadı.");
+  }
 
-          const wrongOptions = uniqueDistricts
-            .filter((d) => d.cityName !== city.name)
-            .sort(() => 0.5 - Math.random())
-            .slice(0, 3)
-            .map((d) => d.name);
+  const questions: QuizQuestion[] = [];
+  const positiveCount = Math.ceil(size / 2);
+  for (let index = 0; index < size; index += 1) {
+    const askForMetropolitan = index < positiveCount;
+    const answerPool = askForMetropolitan ? metropolitan : otherProvinces;
+    const distractorPool = askForMetropolitan ? otherProvinces : metropolitan;
+    const correct = sample(answerPool, 1)[0];
+    const distractors = sample(distractorPool, 3);
+    questions.push(
+      makeQuestion(
+        askForMetropolitan
+          ? "Aşağıdaki illerden hangisi büyükşehir statüsündedir?"
+          : "Aşağıdaki illerden hangisi büyükşehir statüsünde değildir?",
+        [correct.name, ...distractors.map((province) => province.name)],
+        correct.name,
+        askForMetropolitan,
+      ),
+    );
+  }
 
-          if (wrongOptions.length < 3) return null;
+  return shuffle(questions);
+}
 
-          options = [...wrongOptions, correct].sort(() => 0.5 - Math.random());
-          correctAnswer = options.indexOf(correct);
-        } else {
-          // Negatif soru
-          const correctOptions = cityDistricts
-            .sort(() => 0.5 - Math.random())
-            .slice(0, 3);
-          if (correctOptions.length < 3) return null;
+export const quizService = {
+  fetchCountryData: fetchCountries,
+  generateRegionQuestions: (size = 10) => createRegionQuestions(size),
+  generatePlateQuestions: (size = 10) => createPlateQuestions(size),
+  generateDistrictQuestions: (size = 10) => createDistrictQuestions(size),
+  generateMetropolitanQuestions: (size = 10) =>
+    createMetropolitanQuestions(size),
+  generateMapProvinceQuestions: async (size = 10) => {
+    const available = provinces.filter((province) =>
+      mapProvinces.some((shape) => shape.id === province.id && shape.paths.length),
+    );
+    const selected = sample(available, size);
+    return selected.map((province) => {
+      const wrong = sample(
+        available.filter((item) => item.id !== province.id),
+        3,
+      ).map((item) => item.name);
+      return {
+        ...makeQuestion(
+          "Haritada işaretli il hangisidir?",
+          [province.name, ...wrong],
+          province.name,
+        ),
+        map: { mapId: "turkey", highlightedId: String(province.id) },
+      };
+    });
+  },
 
-          const wrongOption = uniqueDistricts
-            .filter((d) => d.cityName !== city.name)
-            .sort(() => 0.5 - Math.random())[0]?.name;
+  generateCountryCapitalQuestions: async (size = 10) => {
+    const countries = await fetchCountries();
+    const validCountries = [
+      ...new Map(
+        countries
+          .filter((country) => country.capital?.[0])
+          .map((country) => [country.capital![0], country]),
+      ).values(),
+    ];
+    const selected = sample(validCountries, size);
+    return selected.map((country) => {
+      const name = getCountryName(country);
+      const capital = country.capital![0];
+      const wrong = sample(
+        validCountries.filter((item) => getCountryName(item) !== name),
+        3,
+      ).map((item) => item.capital![0]);
+      return makeQuestion(
+        `${name} ülkesinin başkenti hangisidir?`,
+        [capital, ...wrong],
+        capital,
+      );
+    });
+  },
 
-          if (!wrongOption) return null;
+  generateCountryContinentQuestions: async (size = 10) => {
+    const countries = await fetchCountries();
+    const validCountries = countries.filter(
+      (country) => country.continents?.[0],
+    );
+    const continents = [...new Set(validCountries.map((item) => item.continents![0]))];
+    const selected = sample(validCountries, size);
+    return selected.map((country) => {
+      const continent = country.continents![0];
+      const wrong = sample(continents.filter((item) => item !== continent), 3);
+      return makeQuestion(
+        `${getCountryName(country)} hangi kıtada yer alır?`,
+        [continent, ...wrong],
+        continent,
+      );
+    });
+  },
 
-          options = [...correctOptions, wrongOption].sort(
-            () => 0.5 - Math.random(),
-          );
-          correctAnswer = options.indexOf(wrongOption);
-        }
-
-        return {
-          id: Math.floor(Math.random() * 100000) + 1,
-          type: isPositive,
-          question: isPositive
-            ? `Hangisi ${city.name} ilimizin ilçesidir?`
-            : `Hangisi ${city.name} ilimizin ilçesi değildir?`,
-          cityName: city.name,
-          options,
-          correctAnswer,
-        };
-      })
-      .filter(Boolean)
-      .slice(0, 10); // sadece 10 geçerli soru döndür
+  generateCountryFlagQuestions: async (size = 10) => {
+    const countries = await fetchCountries();
+    const validCountries = countries.filter(
+      (country) => country.flags?.png || country.flags?.svg,
+    );
+    const selected = sample(validCountries, size);
+    return selected.map((country) => {
+      const name = getCountryName(country);
+      const wrong = sample(
+        validCountries.filter((item) => getCountryName(item) !== name),
+        3,
+      ).map(getCountryName);
+      return {
+        ...makeQuestion("Bu bayrak hangi ülkeye aittir?", [name, ...wrong], name),
+        flagUrl: country.flags?.png || country.flags?.svg,
+      };
+    });
   },
 };
