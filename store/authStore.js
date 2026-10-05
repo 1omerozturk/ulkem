@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store'
 import { create } from 'zustand'
+import { GAME_RULES } from '../constants/GameConfig'
 import {
   getUser,
   getUserWithQuizData,
@@ -30,7 +31,7 @@ export const useAuthStore = create((set, get) => ({
         id: insertId,
         profile: profileImage,
         score: 0,
-        lives: 10,
+        lives: GAME_RULES.maxLives,
         last_life_update: new Date().toISOString(),
       }
 
@@ -99,7 +100,7 @@ export const useAuthStore = create((set, get) => ({
       const now = new Date().toISOString()
       const savedLifeDate = Date.parse(user.last_life_update)
       const lifeTimerStart =
-        user.lives >= 10 || !Number.isFinite(savedLifeDate)
+        user.lives >= GAME_RULES.maxLives || !Number.isFinite(savedLifeDate)
           ? now
           : user.last_life_update
       await updateUserLives(user.username, updatedLives, lifeTimerStart)
@@ -177,11 +178,11 @@ export const useAuthStore = create((set, get) => ({
       const lastUpdate = new Date(savedLifeDate)
       const minutesPassed = (now.getTime() - lastUpdate.getTime()) / (1000 * 60)
 
-      if (user.lives < 10 && minutesPassed >= 10) {
-        const canEklenecek = Math.floor(minutesPassed / 10)
-        const yeniCan = Math.min(user.lives + canEklenecek, 10)
+      if (user.lives < GAME_RULES.maxLives && minutesPassed >= GAME_RULES.lifeRechargeMinutes) {
+        const canEklenecek = Math.floor(minutesPassed / GAME_RULES.lifeRechargeMinutes)
+        const yeniCan = Math.min(user.lives + canEklenecek, GAME_RULES.maxLives)
         const yeniTarih = new Date(
-          lastUpdate.getTime() + canEklenecek * 10 * 60 * 1000,
+          lastUpdate.getTime() + canEklenecek * GAME_RULES.lifeRechargeMinutes * 60 * 1000,
         )
         await updateUserLives(user.username, yeniCan, yeniTarih.toISOString())
 
@@ -206,10 +207,10 @@ export const useAuthStore = create((set, get) => ({
     const lastUpdateTimestamp = Date.parse(user.last_life_update)
 
     // Kullanıcı max cana ulaştıysa süre göstermeye gerek yok
-    if (user.lives >= 10) return '00:00'
+    if (user.lives >= GAME_RULES.maxLives) return '00:00'
 
-    const timeUntilNextLife = 10 * 60 * 1000 // 10 dakika sonra yeni can eklenecek
-    if (!Number.isFinite(lastUpdateTimestamp)) return '10:00'
+    const timeUntilNextLife = GAME_RULES.lifeRechargeMinutes * 60 * 1000
+    if (!Number.isFinite(lastUpdateTimestamp)) return `${String(GAME_RULES.lifeRechargeMinutes).padStart(2, '0')}:00`
 
     const elapsedTime = Math.max(0, now.getTime() - lastUpdateTimestamp)
     const remainingTime = Math.max(timeUntilNextLife - elapsedTime, 0)
@@ -227,10 +228,10 @@ export const useAuthStore = create((set, get) => ({
   buyLife: async () => {
     try {
       const user = get().user
-      if (!user || user.lives >= 10 || user.score < 500) return false
+      if (!user || user.lives >= GAME_RULES.maxLives || user.score < GAME_RULES.lifePurchaseCost) return false
 
       const updatedLives = user.lives + 1
-      const updatedScore = user.score - 500
+      const updatedScore = user.score - GAME_RULES.lifePurchaseCost
 
       await updateUserLivesToBuy(user.username, updatedLives)
       await updateUserScore(user.id, updatedScore)

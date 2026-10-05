@@ -104,6 +104,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { color: COLORS.authText, fontSize: 17, fontWeight: "900" },
   sectionSubtitle: { color: COLORS.authTextMuted, fontSize: 12, marginTop: 3 },
+  continentScroll: { marginBottom: 14, marginHorizontal: -20 },
+  continentFilters: { flexDirection: "row", gap: 8, paddingHorizontal: 20, paddingVertical: 2 },
+  continentChip: { minHeight: 36, justifyContent: "center", paddingHorizontal: 13, borderRadius: 18, borderWidth: 1, borderColor: COLORS.authBorder, backgroundColor: COLORS.authSurface },
+  continentChipText: { color: COLORS.authTextMuted, fontSize: 12, fontWeight: "800" },
+  continentChipTextSelected: { color: COLORS.white },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",

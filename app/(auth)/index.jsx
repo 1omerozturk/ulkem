@@ -15,6 +15,7 @@ import styles from "../../assets/styles/login.styles";
 import Loading from "../../components/Loading";
 import NoticeModal from "../../components/NoticeModal";
 import { COLORS } from "../../constants/Colors";
+import { BRAND } from "../../constants/GameConfig";
 import { useAuthStore } from "../../store/authStore";
 
 const LoginScreen = () => {
@@ -61,7 +62,7 @@ const LoginScreen = () => {
             <View style={styles.brandAccent} />
           </View>
           <Text style={styles.eyebrow}>TÜRKİYE&apos;Yİ KEŞFET</Text>
-          <Text style={styles.title}>Ülkem&apos;e hoş geldin</Text>
+          <Text style={styles.title}>{`${BRAND.name}’ya hoş geldin`}</Text>
           <Text style={styles.subtitle}>
             Bilgini keşfet, her gün yeni bir şey öğren.
           </Text>

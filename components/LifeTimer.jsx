@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
 import { COLORS } from "../constants/Colors";
+import { GAME_RULES } from "../constants/GameConfig";
 import { useAuthStore } from "../store/authStore";
 import styles from "../assets/styles/life.styles";
 
@@ -18,7 +19,7 @@ export default function LifeTimer() {
 
   useEffect(() => {
     const refreshIfReady = async () => {
-      if (lives >= 10 || refreshInProgress.current) return;
+      if (lives >= GAME_RULES.maxLives || refreshInProgress.current) return;
       refreshInProgress.current = true;
       try {
         await refreshLivesIfNeeded();
@@ -36,7 +37,7 @@ export default function LifeTimer() {
     return () => clearInterval(interval);
   }, [getRemainingTimeForNextLife, lives, refreshLivesIfNeeded]);
 
-  const isFull = lives >= 10;
+  const isFull = lives >= GAME_RULES.maxLives;
 
   return (
     <View style={styles.timerCard}>
@@ -56,7 +57,7 @@ export default function LifeTimer() {
         </Text>
       </View>
       <Text style={[styles.timerValue, isFull && styles.timerValueFull]}>
-        {isFull ? "10/10" : timeLeft}
+        {isFull ? `${GAME_RULES.maxLives}/${GAME_RULES.maxLives}` : timeLeft}
       </Text>
     </View>
   );

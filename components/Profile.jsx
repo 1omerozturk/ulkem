@@ -5,6 +5,8 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import styles from "../assets/styles/profile.styles";
 import { COLORS } from "../constants/Colors";
+import { BRAND, GAME_RULES } from "../constants/GameConfig";
+import BrandMark from "./BrandMark";
 import { useAuthStore } from "../store/authStore";
 
 const statistics = [
@@ -90,7 +92,7 @@ export default function Profile() {
                 size={14}
                 color={COLORS.authPrimary}
               />
-              <Text style={styles.memberText}>Ülkem kaşifi</Text>
+              <Text style={styles.memberText}>{BRAND.explorerTitle}</Text>
             </View>
           </View>
         </View>
@@ -113,7 +115,7 @@ export default function Profile() {
             accessibilityLabel="Canlarını yönet"
           >
             <Ionicons name="heart" size={17} color={COLORS.authError} />
-            <Text style={styles.livesText}>{user?.lives ?? 0}/10</Text>
+            <Text style={styles.livesText}>{user?.lives ?? 0}/{GAME_RULES.maxLives}</Text>
             <Ionicons
               name="chevron-forward"
               size={15}
@@ -129,11 +131,7 @@ export default function Profile() {
           style={styles.emptyState}
         >
           <View style={styles.emptyIllustration}>
-            <Image
-              source={require("@/assets/brand/ulkem-mark.png")}
-              style={styles.avatarImage}
-              resizeMode="contain"
-            />
+            <BrandMark style={styles.avatarImage} />
             <View style={styles.emptySparkle}>
               <Ionicons name="sparkles" size={17} color={COLORS.authAccent} />
             </View>

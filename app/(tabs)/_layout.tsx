@@ -68,7 +68,7 @@ export default function TabLayout() {
 
 const styles = {
   tabBar: {
-    height: 76,
+    height: 60,
     paddingTop: 8,
     paddingBottom: 8,
     backgroundColor: COLORS.authSurface,
@@ -86,7 +86,7 @@ const styles = {
   },
   tabPill: {
     minWidth: 54,
-    height: 44,
+    height: 40,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

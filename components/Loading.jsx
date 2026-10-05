@@ -1,9 +1,10 @@
 import Lottie from "lottie-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../constants/Colors";
+import { BRAND } from "../constants/GameConfig";
 
 export default function Loading({
-  message = "Ülkem hazırlanıyor…",
+  message = BRAND.loadingMessage,
   fullScreen = true,
   compact = false,
 }) {
@@ -15,7 +16,7 @@ export default function Loading({
         accessibilityLabel={message}
       >
         <Lottie
-          source={require("../assets/lottie/ulkem-loading.json")}
+          source={require("../assets/lottie/yurtpusula-loading.json")}
           autoPlay
           loop
           style={styles.compactAnimation}
@@ -31,12 +32,12 @@ export default function Loading({
       accessibilityLabel={message}
     >
       <Lottie
-        source={require("../assets/lottie/ulkem-loading.json")}
+        source={require("../assets/lottie/yurtpusula-loading.json")}
         autoPlay
         loop
         style={styles.animation}
       />
-      <Text style={styles.brand}>Ülkem</Text>
+      <Text style={styles.brand}>{BRAND.name}</Text>
       <Text style={styles.message}>{message}</Text>
     </View>
   );

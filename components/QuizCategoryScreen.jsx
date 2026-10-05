@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import styles from "../assets/styles/quiz-category.styles";
 
@@ -24,8 +25,10 @@ export default function QuizCategoryScreen({
   accent,
   tint,
   note,
+  continentOptions,
 }) {
   const router = useRouter();
+  const [selectedContinent, setSelectedContinent] = useState("all");
 
   return (
     <View style={styles.screen}>
@@ -37,7 +40,9 @@ export default function QuizCategoryScreen({
           <TouchableOpacity
             activeOpacity={0.75}
             style={styles.backButton}
-            onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
+            onPress={() =>
+              router.canGoBack() ? router.back() : router.replace("/(tabs)")
+            }
             accessibilityRole="button"
             accessibilityLabel="Geri dön"
           >
@@ -75,10 +80,50 @@ export default function QuizCategoryScreen({
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionTitle}>Bir meydan okuma seç</Text>
-            <Text style={styles.sectionSubtitle}>Hazır olduğunda dokun ve başla</Text>
+            <Text style={styles.sectionSubtitle}>
+              Hazır olduğunda dokun ve başla
+            </Text>
           </View>
           <Ionicons name="sparkles" size={21} color={accent} />
         </View>
+
+        {continentOptions?.length ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.continentFilters}
+            style={styles.continentScroll}
+            accessibilityLabel="Kıta seç"
+          >
+            {continentOptions.map((continent) => {
+              const selected = selectedContinent === continent.code;
+              return (
+                <TouchableOpacity
+                  key={continent.code}
+                  onPress={() => setSelectedContinent(continent.code)}
+                  style={[
+                    styles.continentChip,
+                    selected && {
+                      backgroundColor: accent,
+                      borderColor: accent,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                >
+                  <Text
+                    style={[
+                      styles.continentChipText,
+                      selected && styles.continentChipTextSelected,
+                    ]}
+                  >
+                    {continent.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : null}
 
         <View style={styles.grid}>
           {items.map((item, index) => {
@@ -93,26 +138,46 @@ export default function QuizCategoryScreen({
                 <TouchableOpacity
                   style={[styles.card, { borderTopColor: iconColor }]}
                   onPress={() =>
-                    router.push({ pathname: "/quiz/[type]", params: { type } })
+                    router.push({
+                      pathname: "/quiz/[type]",
+                      params: {
+                        type,
+                        ...(continentOptions?.length
+                          ? { continent: selectedContinent }
+                          : {}),
+                      },
+                    })
                   }
                   activeOpacity={0.84}
                   accessibilityRole="button"
                   accessibilityLabel={`${item.title}. ${item.description}`}
                 >
                   <View style={styles.cardTop}>
-                    <View style={[styles.iconWrap, { backgroundColor: iconTint }]}>
+                    <View
+                      style={[styles.iconWrap, { backgroundColor: iconTint }]}
+                    >
                       <Ionicons name={item.icon} size={29} color={iconColor} />
                     </View>
-                    <View style={[styles.cardAction, { backgroundColor: iconTint }]}>
-                      <Ionicons name="arrow-forward" size={17} color={iconColor} />
+                    <View
+                      style={[styles.cardAction, { backgroundColor: iconTint }]}
+                    >
+                      <Ionicons
+                        name="arrow-forward"
+                        size={17}
+                        color={iconColor}
+                      />
                     </View>
                   </View>
                   <View style={styles.cardCopy}>
                     <Text style={styles.cardTitle}>{item.title}</Text>
-                    <Text style={styles.cardDescription}>{item.description}</Text>
+                    <Text style={styles.cardDescription}>
+                      {item.description}
+                    </Text>
                   </View>
                   <View style={styles.cardFooter}>
-                    <Text style={[styles.playText, { color: iconColor }]}>OYNA</Text>
+                    <Text style={[styles.playText, { color: iconColor }]}>
+                      OYNA
+                    </Text>
                     <Ionicons name="play" size={12} color={iconColor} />
                   </View>
                 </TouchableOpacity>

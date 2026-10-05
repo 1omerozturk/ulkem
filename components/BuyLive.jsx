@@ -3,10 +3,9 @@ import { Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../store/authStore";
 import { COLORS } from "../constants/Colors";
+import { GAME_RULES } from "../constants/GameConfig";
 import styles from "../assets/styles/buy-live.styles";
 import Loading from "./Loading";
-
-const LIFE_COST = 500;
 
 export default function BuyLive() {
   const user = useAuthStore((state) => state.user);
@@ -16,8 +15,8 @@ export default function BuyLive() {
 
   if (!user) return null;
 
-  const hasMaxLives = user.lives >= 10;
-  const hasEnoughPoints = user.score >= LIFE_COST;
+  const hasMaxLives = user.lives >= GAME_RULES.maxLives;
+  const hasEnoughPoints = user.score >= GAME_RULES.lifePurchaseCost;
   const isDisabled = isBuying || hasMaxLives || !hasEnoughPoints;
 
   const handleBuy = async () => {
@@ -45,7 +44,7 @@ export default function BuyLive() {
         </View>
         <View style={styles.headingCopy}>
           <Text style={styles.title}>Puanla can kazan</Text>
-          <Text style={styles.description}>500 puan karşılığında 1 can</Text>
+          <Text style={styles.description}>{GAME_RULES.lifePurchaseCost} puan karşılığında 1 can</Text>
         </View>
       </View>
 
@@ -54,7 +53,7 @@ export default function BuyLive() {
           <Text style={styles.balanceLabel}>Mevcut can</Text>
           <View style={styles.balanceValueRow}>
             <Ionicons name="heart" size={17} color={COLORS.authError} />
-            <Text style={styles.balanceValue}>{user.lives} / 10</Text>
+            <Text style={styles.balanceValue}>{user.lives} / {GAME_RULES.maxLives}</Text>
           </View>
         </View>
         <View style={styles.balanceDivider} />
@@ -76,14 +75,14 @@ export default function BuyLive() {
         activeOpacity={0.82}
         accessibilityState={{ busy: isBuying, disabled: isDisabled }}
         accessibilityRole="button"
-        accessibilityLabel={`500 puan karşılığında 1 can al. Mevcut puan ${user.score}`}
+        accessibilityLabel={`${GAME_RULES.lifePurchaseCost} puan karşılığında 1 can al. Mevcut puan ${user.score}`}
       >
         {isBuying ? (
           <Loading compact message="Can satın alınıyor" />
         ) : (
           <>
             <Ionicons name="add-circle-outline" size={21} color={COLORS.white} />
-            <Text style={styles.buttonText}>500 puanla 1 can al</Text>
+            <Text style={styles.buttonText}>{GAME_RULES.lifePurchaseCost} puanla 1 can al</Text>
           </>
         )}
       </TouchableOpacity>
@@ -92,7 +91,7 @@ export default function BuyLive() {
         {hasMaxLives
           ? "Canların dolu. Yeni bir quiz için hazırsın!"
           : !hasEnoughPoints
-            ? `${(LIFE_COST - user.score).toLocaleString("tr-TR")} puan daha kazan, sonra can alabilirsin.`
+            ? `${(GAME_RULES.lifePurchaseCost - user.score).toLocaleString("tr-TR")} puan daha kazan, sonra can alabilirsin.`
             : "Canların zamanla da yenilenir."}
       </Text>
 

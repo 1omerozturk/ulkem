@@ -1,10 +1,8 @@
 {
   "expo": {
-    "name": "Ülkem",
     "slug": "ulkem",
     "version": "1.1.0",
     "orientation": "portrait",
-    "icon": "./assets/brand/ulkem-app-icon.png",
     "scheme": "ulkem",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,28 +10,18 @@
       "supportsTablet": true
     },
     "android": {
-      "adaptiveIcon": {
-          "foregroundImage": "./assets/brand/ulkem-mark.png",
-          "backgroundColor": "#F1F6F3"
-      },
       "package": "com.omerozturk.ulkem",
       "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/brand/ulkem-app-icon.png"
+      "output": "static"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
-        {
-          "image": "./assets/brand/ulkem-mark.png",
-          "imageWidth": 220,
-          "resizeMode": "contain",
-          "backgroundColor": "#F1F6F3"
-        }
+        { "imageWidth": 220, "resizeMode": "contain" }
       ],
       [
         "expo-sqlite",

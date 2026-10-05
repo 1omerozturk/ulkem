@@ -1,10 +1,10 @@
-# Ülkem — Proje Yol Haritası
+# YurtPusula — Proje Yol Haritası
 
 > Bu belge mevcut depo ve çalışma ağacı incelenerek hazırlandı. “Tamamlandı” kodda bulunan parçaları ifade eder; cihaz üzerinde uçtan uca çalıştığı doğrulanmış anlamına gelmez.
 
 ## Proje özeti
 
-Ülkem, Expo Router ve React Native ile geliştirilen; Türkiye şehirleri ve dünya ülkeleri hakkında kısa süreli bilgi yarışmaları sunmayı hedefleyen bir mobil uygulamadır. Veriler SQLite ile cihazda saklanacak şekilde tasarlanmıştır. Mevcut sürüm `1.1.0`; proje Expo SDK 57 ve React Native 0.86 kullanıyor.
+YurtPusula, Expo Router ve React Native ile geliştirilen; Türkiye şehirleri ve dünya ülkeleri hakkında kısa süreli bilgi yarışmaları sunmayı hedefleyen bir mobil uygulamadır. Veriler SQLite ile cihazda saklanacak şekilde tasarlanmıştır. Mevcut sürüm `1.1.0`; proje Expo SDK 57 ve React Native 0.86 kullanıyor.
 
 ## Tamamlananlar
 
@@ -19,6 +19,9 @@
 - [x] Quiz oynanışı arayüzü: zaman çubuğu, cevap seçimi, puanlama, animasyonlar ve sonuç ekranı bileşenleri.
 - [x] Profil istatistikleri ve can satın alma/yenileme arayüz bileşenleri.
 - [x] Uygulama renkleri, Lottie animasyonları ve quiz ekranı stilleri.
+- [x] YurtPusula marka ve oyun kurallarını ortak sabitlerde tanımla; uygulama kimliğini, ikon yollarını, can sistemini ve quiz ayarlarını ortak kullan.
+- [x] Quiz sayaç çubuğunu geri sayan renkli animasyona çevir; doğru cevap serisine puan bonusu ekle ve harita quizlerine ek süre tanı.
+- [x] Dünya quizlerini Türkçe adları, yerel ülke verisi ve sıkıştırılmış çevrimdışı SVG bayraklarıyla API'den bağımsız çalıştır; kıta seçimine göre soru havuzlarını filtrele.
 - [x] EAS yapılandırması ve Android/iOS/web Expo yapılandırması.
 - [x] Kimlik doğrulama ekranlarını ortak, okunaklı renk paleti ve kaydırılabilir düzenle yenile.
 - [x] Kök yönlendirmede veritabanı/oturum hazırlığını tamamlanana kadar bekle ve korumalı rotaları yönet.

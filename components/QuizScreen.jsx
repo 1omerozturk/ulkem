@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BackHandler,
-  Image,
   Text,
   TouchableOpacity,
   View,
@@ -14,18 +13,20 @@ import Animated, {
   FadeOutUp,
   SlideInDown,
   SlideInUp,
-  useSharedValue,
-  withTiming,
 } from "react-native-reanimated";
 import { styles } from "../assets/styles/quiz.styles";
 import { COLORS } from "../constants/Colors";
+import { GAME_RULES } from "../constants/GameConfig";
+import { Ionicons } from "@expo/vector-icons";
 import { quizService } from "../service/quizService";
+import { getContinentName } from "../model/world/continents";
 import { useAuthStore } from "../store/authStore";
 import ResultScreen from "./ResultScreen";
 import TimerBar from "./TimerBar";
 import Loading from "./Loading";
 import NoticeModal from "./NoticeModal";
 import QuizMap from "./QuizMap";
+import QuizVisual from "./QuizVisual";
 
 const quizCopy = {
   plate: { title: "Plaka Avcısı", subtitle: "Kodundan şehri, şehrinden plakayı bul." },
@@ -38,8 +39,21 @@ const quizCopy = {
   "country-flag": { title: "Bayrak Dedektifi", subtitle: "Bayrağı gör, ülkeyi tahmin et." },
 };
 
-export default function QuizScreen({ type }) {
+export default function QuizScreen({ type, continent = "all" }) {
   const router = useRouter();
+  const continentCode = Array.isArray(continent) ? continent[0] || "all" : continent || "all";
+  const continentName = continentCode === "all" ? null : getContinentName(continentCode);
+  const activeQuizCopy = quizCopy[type] || { title: "Bilgi Yarışması", subtitle: "Hazırsan başlayalım!" };
+  const introTitle = continentName ? `${continentName} · ${activeQuizCopy.title}` : activeQuizCopy.title;
+  const introSubtitle = continentName
+    ? type === "country-continent"
+      ? `${continentName} kıtasına ait ülkeleri seçeneklerden bul.`
+      : `${continentName} ülkelerini keşfetmeye hazır mısın?`
+    : activeQuizCopy.subtitle;
+  const questionDurationSeconds = type === "map-province"
+    ? GAME_RULES.mapQuestionTimeSeconds
+    : GAME_RULES.questionTimeSeconds;
+  const questionDurationMs = questionDurationSeconds * 1000;
   const [resetTimerKey, setResetTimerKey] = useState(0);
   const [phase, setPhase] = useState("intro");
   const [notice, setNotice] = useState(null);
@@ -47,8 +61,9 @@ export default function QuizScreen({ type }) {
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [questions, setQuestions] = useState([]);
-  const [timeLeft, setTimeLeft] = useState(20);
+  const [timeLeft, setTimeLeft] = useState(questionDurationSeconds);
   const [score, setScore] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [quizData, setQuizData] = useState({
     quiz_number: 0,
     question_number: 0,
@@ -58,7 +73,6 @@ export default function QuizScreen({ type }) {
   const decrementLife = useAuthStore((state) => state.decrementLife);
 
   const timerRef = useRef(null);
-  const progressAnim = useSharedValue(0);
   const confettiRef = useRef(null);
   const closeNotice = () => setNotice(null);
 
@@ -70,7 +84,8 @@ export default function QuizScreen({ type }) {
     setSelectedAnswer(null);
     setIsAnswered(false);
     setScore(0);
-    setTimeLeft(20);
+    setTimeLeft(questionDurationSeconds);
+    setStreak(0);
     setQuizData({ quiz_number: 0, question_number: 0, true_number: 0, false_number: 0 });
     try {
       let newQuestions = [];
@@ -91,13 +106,22 @@ export default function QuizScreen({ type }) {
           newQuestions = await quizService.generateMapProvinceQuestions();
           break;
         case "country-capital":
-          newQuestions = await quizService.generateCountryCapitalQuestions();
+          newQuestions = await quizService.generateCountryCapitalQuestions(
+            GAME_RULES.questionsPerQuiz,
+            continentCode,
+          );
           break;
         case "country-continent":
-          newQuestions = await quizService.generateCountryContinentQuestions();
+          newQuestions = await quizService.generateCountryContinentQuestions(
+            GAME_RULES.questionsPerQuiz,
+            continentCode,
+          );
           break;
         case "country-flag":
-          newQuestions = await quizService.generateCountryFlagQuestions();
+          newQuestions = await quizService.generateCountryFlagQuestions(
+            GAME_RULES.questionsPerQuiz,
+            continentCode,
+          );
           break;
         default:
           break;
@@ -112,7 +136,7 @@ export default function QuizScreen({ type }) {
         setPhase("intro");
         setNotice({
           title: "Biraz mola zamanı",
-          message: "Canın kalmamış. Yeni canın 10 dakikada bir yenilenir.",
+          message: `Canın kalmamış. Yeni canın ${GAME_RULES.lifeRechargeMinutes} dakikada bir yenilenir.`,
           icon: "heart-dislike",
           confirmLabel: "Canları gör",
           cancelLabel: "Daha sonra",
@@ -125,7 +149,7 @@ export default function QuizScreen({ type }) {
       setCurrentQuestion(0);
       setSelectedAnswer(null);
       setIsAnswered(false);
-      setTimeLeft(20);
+      setTimeLeft(questionDurationSeconds);
       setResetTimerKey((prev) => prev + 1);
       setPhase("playing");
     } catch (error) {
@@ -145,50 +169,33 @@ export default function QuizScreen({ type }) {
     setSelectedAnswer(null);
     setIsAnswered(false);
     setCurrentQuestion((prev) => prev + 1);
-    setTimeLeft(20);
+    setTimeLeft(questionDurationSeconds);
     setResetTimerKey((prev) => prev + 1);
-  }, []);
+  }, [questionDurationSeconds]);
 
-  const resetTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setTimeLeft(20);
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          nextQuestion();
-          return 20;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, [nextQuestion]);
-
-  const handleAnswer = (index) => {
+  const handleAnswer = useCallback((index) => {
     if (isAnswered) return;
 
     setSelectedAnswer(index);
     setIsAnswered(true);
 
     let isCorrect = false;
-    let isSkipped = index === null;
-
     if (index === questions[currentQuestion]?.correctAnswer) {
-      setScore((prev) => prev + 10);
+      const bonus = Math.min(streak, GAME_RULES.maxStreakBonus);
+      setScore((prev) => prev + GAME_RULES.pointsPerCorrectAnswer + bonus * GAME_RULES.streakBonusPerCorrectAnswer);
+      setStreak((prev) => prev + 1);
       confettiRef.current?.play();
       isCorrect = true;
+    } else {
+      setStreak(0);
     }
 
     // Her cevap için question_number + doğru/yanlış
     setQuizData((prev) => ({
       ...prev,
       question_number: prev.question_number + 1,
-      true_number: isSkipped
-        ? prev.true_number
-        : prev.true_number + (isCorrect ? 1 : 0),
-      false_number: isSkipped
-        ? prev.false_number
-        : prev.false_number + (isCorrect ? 0 : 1),
+      true_number: prev.true_number + (isCorrect ? 1 : 0),
+      false_number: prev.false_number + (isCorrect ? 0 : 1),
     }));
 
     if (timerRef.current) clearInterval(timerRef.current);
@@ -205,18 +212,19 @@ export default function QuizScreen({ type }) {
       }
 
       nextQuestion();
-    }, 1500);
-  };
+    }, GAME_RULES.answerRevealMilliseconds);
+  }, [currentQuestion, isAnswered, nextQuestion, questions, streak]);
 
   useEffect(() => {
-    if (phase === "playing" && questions.length && currentQuestion < questions.length) {
-      const frame = requestAnimationFrame(() => {
-        resetTimer();
-        progressAnim.value = withTiming(1, { duration: 20000 });
-      });
-      return () => cancelAnimationFrame(frame);
-    }
-  }, [currentQuestion, phase, progressAnim, questions.length, resetTimer]);
+    const isPlaying = phase === "playing" && questions.length > 0 && currentQuestion < questions.length;
+    if (!isPlaying || isAnswered || notice) return;
+    timerRef.current = setInterval(() => setTimeLeft((remaining) => Math.max(remaining - 1, 0)), 1000);
+    return () => clearInterval(timerRef.current);
+  }, [currentQuestion, isAnswered, notice, phase, questions.length]);
+
+  useEffect(() => {
+    if (phase === "playing" && !isAnswered && !notice && timeLeft === 0) handleAnswer(null);
+  }, [handleAnswer, isAnswered, notice, phase, timeLeft]);
 
   useEffect(() => {
     const isPlaying =
@@ -261,9 +269,9 @@ export default function QuizScreen({ type }) {
           loop
           style={styles.lottieStart}
         />
-        <Text style={styles.startTitle}>{quizCopy[type]?.title || "Bilgi Yarışması"}</Text>
+        <Text style={styles.startTitle}>{introTitle}</Text>
         <Text style={styles.startSubtitle}>
-          {quizCopy[type]?.subtitle || "Hazırsan başlayalım!"}
+          {introSubtitle}
         </Text>
         <TouchableOpacity style={styles.startButton} onPress={startGame}>
           <Text style={styles.startButtonText}>BAŞLA</Text>
@@ -324,19 +332,28 @@ export default function QuizScreen({ type }) {
             <Text>{" / " + questions.length}</Text>
           </Animated.Text>
 
-          <Text style={styles.scoreText}>Puan: {score}</Text>
+          <View style={styles.scorePill}>
+            <Ionicons name="trophy" size={14} color={COLORS.authAccent} />
+            <Text style={styles.scoreText}>{score}</Text>
+          </View>
+
+          <View style={styles.streakPill}>
+            <Ionicons name="flame" size={14} color={COLORS.menuTurkeyAccent} />
+            <Text style={styles.streakText}>{streak}</Text>
+          </View>
 
           <Animated.View
             entering={FadeIn.duration(300)}
             exiting={FadeOut.duration(200)}
-            style={styles.timerContainer}
+            style={[styles.timerContainer, timeLeft <= 5 && styles.timerUrgent]}
           >
-            <Text style={styles.timerText}>{timeLeft}</Text>
+            <Ionicons name="time-outline" size={15} color={COLORS.white} />
+            <Text style={styles.timerText}>{timeLeft > 0 ? timeLeft : "BİTTİ"}</Text>
           </Animated.View>
         </View>
 
         <View style={styles.progressBarContainer}>
-          <TimerBar duration={20000} resetTrigger={resetTimerKey} />
+          <TimerBar duration={questionDurationMs} paused={isAnswered || Boolean(notice)} resetTrigger={resetTimerKey} />
         </View>
       </View>
 
@@ -350,14 +367,7 @@ export default function QuizScreen({ type }) {
           {questions[currentQuestion]?.map && (
             <QuizMap {...questions[currentQuestion].map} />
           )}
-          {questions[currentQuestion]?.flagUrl && (
-            <View style={styles.flagContainer}>
-              <Image
-                source={{ uri: questions[currentQuestion]?.flagUrl }}
-                style={styles.flagImage}
-              />
-            </View>
-          )}
+          <QuizVisual visual={questions[currentQuestion]?.visual} />
           <Text style={styles.questionText}>
             <Text
               style={
@@ -374,6 +384,9 @@ export default function QuizScreen({ type }) {
         </Animated.View>
 
         <View style={styles.optionsContainer}>
+          {isAnswered && selectedAnswer === null ? (
+            <Text style={styles.timeoutMessage}>Süre doldu · doğru cevabı incele</Text>
+          ) : null}
           {questions[currentQuestion]?.options.map((option, index) => {
             const isCorrect =
               index === questions[currentQuestion]?.correctAnswer;

@@ -4,6 +4,7 @@ import BackButton from "@/components/BackButton";
 import BuyLive from "@/components/BuyLive";
 import LifeTimer from "@/components/LifeTimer";
 import styles from "@/assets/styles/life.styles";
+import { GAME_RULES } from "@/constants/GameConfig";
 
 export default function LifeScreen() {
   return (
@@ -25,8 +26,7 @@ export default function LifeScreen() {
       <LifeTimer />
       <View style={styles.note}>
         <Text style={styles.noteText}>
-          En fazla 10 can biriktirebilirsin. Yeni bir can her 10 dakikada bir
-          eklenir.
+          En fazla {GAME_RULES.maxLives} can biriktirebilirsin. Yeni bir can her {GAME_RULES.lifeRechargeMinutes} dakikada bir eklenir.
         </Text>
       </View>
     </ScrollView>
