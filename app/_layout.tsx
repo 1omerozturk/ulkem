@@ -46,7 +46,7 @@ function AppNavigator() {
     }
   }, [isReady, segments, user, router]);
 
-  if (isReady) {
+  if (!isReady) {
     return <Loading message="Dünyalar keşfe hazırlanıyor…" />;
   }
 
