@@ -1,5 +1,6 @@
 import { GAME_RULES } from "../constants/GameConfig";
 import { getContinentName } from "../model/world/continents";
+import { getTurkishCapitalName, getTurkishCountryName } from "../model/world/names";
 
 type Province = {
   id: number;
@@ -19,6 +20,11 @@ const mapProvinces = require("../assets/maps/turkeyProvinces.json") as {
   paths: string[];
 }[];
 const worldCountries = require("../model/world/countries.json") as WorldCountry[];
+const worldMapShapes = require("../assets/maps/worldCountries.json") as {
+  id: string;
+  continent: string;
+  paths: string[];
+}[];
 
 type WorldCountry = {
   code: string;
@@ -36,6 +42,7 @@ type QuizQuestion = {
   correctAnswer: number;
   type?: boolean;
   visual?: { type: "flag"; key: string };
+  map?: { mapId: string; highlightedId: string };
 };
 
 const shuffle = <T,>(values: T[]): T[] => {
@@ -71,10 +78,8 @@ const makeQuestion = (
   };
 };
 
-const getCountryName = (country: WorldCountry) =>
-  Array.isArray(country.nameTr)
-    ? country.nameTr.find((name) => name.length > 6) || country.nameTr[0]
-    : country.nameTr || country.name;
+const getCountryName = (country: WorldCountry) => getTurkishCountryName(country);
+const getCapitalName = (country: WorldCountry) => getTurkishCapitalName(country);
 const getCountries = (continentCode = "all") =>
   worldCountries.filter(
     (country) => continentCode === "all" || country.continent === continentCode,
@@ -270,7 +275,7 @@ export const quizService = {
     const validCountries = getCountries(continentCode);
     const uniqueCountries = [
       ...new Map(
-        validCountries.map((country) => [country.capital, country]),
+        validCountries.map((country) => [getCapitalName(country), country]),
       ).values(),
     ];
     if (uniqueCountries.length < size || uniqueCountries.length < 4) {
@@ -279,15 +284,41 @@ export const quizService = {
     const selected = sample(uniqueCountries, size);
     return selected.map((country) => {
       const name = getCountryName(country);
-      const capital = country.capital;
+      const capital = getCapitalName(country);
       const wrong = sample(
         uniqueCountries.filter((item) => getCountryName(item) !== name),
         3,
-      ).map((item) => item.capital);
+      ).map(getCapitalName);
       return makeQuestion(
         `${name} ülkesinin başkenti hangisidir?`,
         [capital, ...wrong],
         capital,
+      );
+    });
+  },
+
+  generateCountryCityQuestions: (size = GAME_RULES.questionsPerQuiz, continentCode = "all") => {
+    const uniqueCapitals = [
+      ...new Map(
+        getCountries(continentCode).map((country) => [getCapitalName(country), country]),
+      ).values(),
+    ];
+    if (uniqueCapitals.length < size || uniqueCapitals.length < 4) {
+      throw new Error("Bu kıta için şehir quizini hazırlayacak yeterli veri bulunamadı.");
+    }
+
+    return sample(uniqueCapitals, size).map((country) => {
+      const city = getCapitalName(country);
+      const answer = getCountryName(country);
+      const wrong = sample(
+        uniqueCapitals.filter((item) => getCountryName(item) !== answer),
+        3,
+      ).map(getCountryName);
+
+      return makeQuestion(
+        `${city} hangi ülkenin başkentidir?`,
+        [answer, ...wrong],
+        answer,
       );
     });
   },
@@ -341,6 +372,26 @@ export const quizService = {
       return {
         ...makeQuestion("Bu bayrak hangi ülkeye aittir?", [name, ...wrong], name),
         visual: { type: "flag", key: country.code },
+      };
+    });
+  },
+
+  generateMapCountryQuestions: (size = GAME_RULES.questionsPerQuiz, continentCode = "all") => {
+    const mappedCodes = new Set(worldMapShapes.map(({ id }) => id));
+    const mappedCountries = getCountries(continentCode).filter((country) => mappedCodes.has(country.code));
+    if (mappedCountries.length < 4) {
+      throw new Error("Bu kıtada harita quizini hazırlamak için yeterli ülke verisi yok.");
+    }
+
+    return sample(mappedCountries, Math.min(size, mappedCountries.length)).map((country) => {
+      const answer = getCountryName(country);
+      const wrong = sample(
+        mappedCountries.filter((item) => item.code !== country.code),
+        3,
+      ).map(getCountryName);
+      return {
+        ...makeQuestion("Haritada işaretli ülke hangisidir?", [answer, ...wrong], answer),
+        map: { mapId: "world", highlightedId: country.code },
       };
     });
   },

@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import styles from "../assets/styles/quiz-map.styles";
+import WorldMap from "./WorldMap";
 
 const maps = {
   turkey: {
@@ -10,6 +11,9 @@ const maps = {
 };
 
 export default function QuizMap({ mapId, highlightedId }) {
+  if (mapId === "world") {
+    return <WorldMap highlightedId={highlightedId} compact />;
+  }
   const map = maps[mapId];
   if (!map) return null;
 

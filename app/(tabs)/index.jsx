@@ -17,6 +17,12 @@ export const worldQuizData = [
     url: "quiz/country-capital",
   },
   {
+    title: "Şehirden Ülkeye",
+    description: "Başkentten hangi ülkeye ait olduğunu bul.",
+    icon: "navigate-circle-outline",
+    url: "quiz/country-city",
+  },
+  {
     title: "Kıta Kaşifi",
     description: "Ülkelerin hangi kıtada olduğunu bul.",
     icon: "earth-outline",
@@ -27,6 +33,12 @@ export const worldQuizData = [
     description: "Bayrağı gör, ülkeyi tahmin et.",
     icon: "flag-outline",
     url: "quiz/country-flag",
+  },
+  {
+    title: "Haritada Ülkeyi Bul",
+    description: "Haritadaki işareti incele, ülkeyi keşfet.",
+    icon: "map-outline",
+    url: "quiz/map-country",
   },
 ];
 
@@ -162,7 +174,7 @@ export default function HomeScreen() {
           onPress={() => router.push("/quiz/world")}
           activeOpacity={0.88}
           accessibilityRole="button"
-          accessibilityLabel="Dünya quizlerini aç. 3 kategori"
+          accessibilityLabel="Dünya quizlerini aç. 5 kategori"
         >
           <View style={[styles.categoryIcon, styles.worldIcon]}>
             <Image
@@ -177,11 +189,11 @@ export default function HomeScreen() {
             </Text>
             <Text style={styles.categoryTitle}>Dünya</Text>
             <Text style={styles.categorySubtitle}>
-              Ülkeler, başkentler ve bayraklar
+              Ülkeler, şehirler, başkentler ve bayraklar
             </Text>
             <View style={styles.categoryMeta}>
               <Text style={[styles.categoryCount, styles.worldCount]}>
-                3 QUIZ KATEGORİSİ
+                5 QUIZ KATEGORİSİ
               </Text>
             </View>
           </View>

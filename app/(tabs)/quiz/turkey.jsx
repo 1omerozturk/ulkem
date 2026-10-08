@@ -9,6 +9,7 @@ export default function TurkeyQuizPage() {
       eyebrow="YAKINDAN TANI"
       subtitle="Şehirler, bölgeler ve ilçeler için meydan okumaya hazır mısın?"
       items={turkeyQuizData}
+      returnTo="/quiz/turkey"
       accent={COLORS.menuTurkeyAccent}
       tint={COLORS.menuTurkey}
       note="Türkiye’nin dört bir yanını sorularla keşfet."

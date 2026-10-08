@@ -15,5 +15,5 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
 , "app/_layout.jsx", "app/index.jsx"
-, "app/(tabs)/index.jsx", "model/db.js", "store/authStore.js"  ]
+, "app/(tabs)/index.jsx", "model/db.js", "store/authStore.js", "components/TimerBar.tsx"  ]
 }

@@ -1,15 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { BackHandler, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import styles from "../assets/styles/quiz-category.styles";
+import { useGameAudio } from "./GameAudioProvider";
+import WorldMap from "./WorldMap";
 
 const iconColors = {
   "country-capital": ["#466E9E", "#E6EFF9"],
+  "country-city": ["#7058A5", "#EEE9F8"],
   "country-continent": ["#348A81", "#E3F3EF"],
   "country-flag": ["#C45B56", "#FAEAE7"],
+  "map-country": ["#398895", "#E3F2F3"],
   plate: ["#B77825", "#FFF1D9"],
   region: ["#548C66", "#E8F3E8"],
   district: ["#5276A3", "#E9EFF8"],
@@ -26,9 +30,40 @@ export default function QuizCategoryScreen({
   tint,
   note,
   continentOptions,
+  returnTo,
 }) {
   const router = useRouter();
   const [selectedContinent, setSelectedContinent] = useState("all");
+  const { vibrate } = useGameAudio();
+  const goToMainMenu = useCallback(() => router.replace("/(tabs)"), [router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => {
+          goToMainMenu();
+          return true;
+        },
+      );
+
+      return () => subscription.remove();
+    }, [goToMainMenu]),
+  );
+
+  const openQuiz = (type) => {
+    vibrate("selection");
+    router.push({
+      pathname: "/quiz/[type]",
+      params: {
+        type,
+        returnTo,
+        ...(continentOptions?.length
+          ? { continent: selectedContinent }
+          : {}),
+      },
+    });
+  };
 
   return (
     <View style={styles.screen}>
@@ -40,9 +75,7 @@ export default function QuizCategoryScreen({
           <TouchableOpacity
             activeOpacity={0.75}
             style={styles.backButton}
-            onPress={() =>
-              router.canGoBack() ? router.back() : router.replace("/(tabs)")
-            }
+            onPress={goToMainMenu}
             accessibilityRole="button"
             accessibilityLabel="Geri dön"
           >
@@ -88,41 +121,13 @@ export default function QuizCategoryScreen({
         </View>
 
         {continentOptions?.length ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.continentFilters}
-            style={styles.continentScroll}
-            accessibilityLabel="Kıta seç"
-          >
-            {continentOptions.map((continent) => {
-              const selected = selectedContinent === continent.code;
-              return (
-                <TouchableOpacity
-                  key={continent.code}
-                  onPress={() => setSelectedContinent(continent.code)}
-                  style={[
-                    styles.continentChip,
-                    selected && {
-                      backgroundColor: accent,
-                      borderColor: accent,
-                    },
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                >
-                  <Text
-                    style={[
-                      styles.continentChipText,
-                      selected && styles.continentChipTextSelected,
-                    ]}
-                  >
-                    {continent.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          <View style={styles.continentMapSection}>
+            <Text style={styles.mapPrompt}>HARİTADAN BİR BÖLGE SEÇ</Text>
+            <WorldMap selectedContinent={selectedContinent} onSelectContinent={setSelectedContinent} />
+            <Text style={styles.selectedRegion}>
+              {continentOptions.find((item) => item.code === selectedContinent)?.name || "Tüm dünya"} seçili
+            </Text>
+          </View>
         ) : null}
 
         <View style={styles.grid}>
@@ -137,17 +142,7 @@ export default function QuizCategoryScreen({
               >
                 <TouchableOpacity
                   style={[styles.card, { borderTopColor: iconColor }]}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/quiz/[type]",
-                      params: {
-                        type,
-                        ...(continentOptions?.length
-                          ? { continent: selectedContinent }
-                          : {}),
-                      },
-                    })
-                  }
+                  onPress={() => openQuiz(type)}
                   activeOpacity={0.84}
                   accessibilityRole="button"
                   accessibilityLabel={`${item.title}. ${item.description}`}

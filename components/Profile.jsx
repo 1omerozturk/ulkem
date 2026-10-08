@@ -61,10 +61,21 @@ export default function Profile() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.pageHeading}>
-        <Text style={styles.pageTitle}>Profilim</Text>
-        <Text style={styles.pageSubtitle}>
-          Yolculuğundaki ilerlemeye göz at.
-        </Text>
+        <View style={styles.pageHeadingCopy}>
+          <Text style={styles.pageTitle}>Profilim</Text>
+          <Text style={styles.pageSubtitle}>
+            Yolculuğundaki ilerlemeye göz at.
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => router.push("/settings")}
+          activeOpacity={0.82}
+          accessibilityRole="button"
+          accessibilityLabel="Oyun ayarlarını aç"
+        >
+          <Ionicons name="settings-outline" size={21} color={COLORS.authPrimary} />
+        </TouchableOpacity>
       </View>
 
       <Animated.View

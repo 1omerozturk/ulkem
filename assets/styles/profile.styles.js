@@ -16,8 +16,13 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   pageHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 18,
   },
+  pageHeadingCopy: { flex: 1 },
+  settingsButton: { width: 45, height: 45, alignItems: "center", justifyContent: "center", marginLeft: 12, borderRadius: 15, backgroundColor: COLORS.authSurface, borderWidth: 1, borderColor: COLORS.authBorder },
   pageTitle: {
     color: COLORS.authText,
     fontSize: 26,

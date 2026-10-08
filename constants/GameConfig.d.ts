@@ -13,6 +13,7 @@ export const GAME_RULES: Readonly<{
   mapQuestionTimeSeconds: number;
   answerRevealMilliseconds: number;
   pointsPerCorrectAnswer: number;
+  quickAnswerMaxBonus: number;
   streakBonusPerCorrectAnswer: number;
   maxStreakBonus: number;
   maxLives: number;

@@ -8,8 +8,9 @@ export default function WorldQuizPage() {
     <QuizCategoryScreen
       title="Dünya quizleri"
       eyebrow="SINIRLARI AŞ, KEŞFET"
-      subtitle="Ülkeleri, başkentleri ve bayrakları keşfet; quizini istediğin kıtaya göre seç."
+      subtitle="Ülkeleri, şehirleri, başkentleri ve bayrakları kıta kıta keşfet."
       items={worldQuizData}
+      returnTo="/quiz/world"
       continentOptions={WORLD_CONTINENTS}
       accent={COLORS.menuWorldAccent}
       tint={COLORS.menuWorld}

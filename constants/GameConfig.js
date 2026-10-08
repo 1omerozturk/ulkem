@@ -16,6 +16,7 @@ const GAME_RULES = Object.freeze({
   mapQuestionTimeSeconds: 25,
   answerRevealMilliseconds: 1400,
   pointsPerCorrectAnswer: 10,
+  quickAnswerMaxBonus: 5,
   streakBonusPerCorrectAnswer: 2,
   maxStreakBonus: 10,
   maxLives: 10,

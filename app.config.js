@@ -15,6 +15,18 @@ module.exports = ({ config }) => {
     return plugin;
   });
 
+  if (!plugins.some((plugin) => plugin === "expo-audio" || (Array.isArray(plugin) && plugin[0] === "expo-audio"))) {
+    plugins.push([
+      "expo-audio",
+      {
+        microphonePermission: false,
+        recordAudioAndroid: false,
+        enableBackgroundPlayback: false,
+        enableBackgroundRecording: false,
+      },
+    ]);
+  }
+
   return {
     ...config,
     name: BRAND.name,

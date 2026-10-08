@@ -62,6 +62,7 @@ export default function TabLayout() {
       <Tabs.Screen name="quiz/[type]" options={{ href: null, tabBarStyle: { display: "none" } }} />
       <Tabs.Screen name="quiz/world" options={{ href: null }} />
       <Tabs.Screen name="quiz/turkey" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );
 }

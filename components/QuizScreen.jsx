@@ -3,10 +3,12 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BackHandler,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -27,6 +29,7 @@ import Loading from "./Loading";
 import NoticeModal from "./NoticeModal";
 import QuizMap from "./QuizMap";
 import QuizVisual from "./QuizVisual";
+import { useGameAudio } from "./GameAudioProvider";
 
 const quizCopy = {
   plate: { title: "Plaka Avcısı", subtitle: "Kodundan şehri, şehrinden plakayı bul." },
@@ -35,12 +38,30 @@ const quizCopy = {
   metropolitan: { title: "Büyükşehir Bilgisi", subtitle: "Büyükşehir statüsündeki illeri tanı." },
   "map-province": { title: "Haritada İli Bul", subtitle: "Haritadaki vurguyu incele ve doğru ili seç." },
   "country-capital": { title: "Başkent Ustası", subtitle: "Ülkeleri başkentleriyle eşleştir." },
+  "country-city": { title: "Şehirden Ülkeye", subtitle: "Şehrin hangi ülkeye ait olduğunu bul." },
   "country-continent": { title: "Kıta Kaşifi", subtitle: "Ülkelerin hangi kıtada olduğunu bul." },
   "country-flag": { title: "Bayrak Dedektifi", subtitle: "Bayrağı gör, ülkeyi tahmin et." },
+  "map-country": { title: "Haritada Ülkeyi Bul", subtitle: "Haritadaki işareti incele ve ülkeyi keşfet." },
 };
 
-export default function QuizScreen({ type, continent = "all" }) {
+const quizIcons = {
+  plate: "keypad",
+  region: "earth",
+  district: "business",
+  metropolitan: "business",
+  "map-province": "map",
+  "country-capital": "compass",
+  "country-city": "navigate-circle",
+  "country-continent": "globe",
+  "country-flag": "flag",
+  "map-country": "map",
+};
+
+export default function QuizScreen({ type, continent = "all", returnTo }) {
   const router = useRouter();
+  const categoryRoute =
+    returnTo || (type?.startsWith("country-") || type === "map-country" ? "/quiz/world" : "/quiz/turkey");
+  const goToCategory = useCallback(() => router.replace(categoryRoute), [categoryRoute, router]);
   const continentCode = Array.isArray(continent) ? continent[0] || "all" : continent || "all";
   const continentName = continentCode === "all" ? null : getContinentName(continentCode);
   const activeQuizCopy = quizCopy[type] || { title: "Bilgi Yarışması", subtitle: "Hazırsan başlayalım!" };
@@ -50,7 +71,7 @@ export default function QuizScreen({ type, continent = "all" }) {
       ? `${continentName} kıtasına ait ülkeleri seçeneklerden bul.`
       : `${continentName} ülkelerini keşfetmeye hazır mısın?`
     : activeQuizCopy.subtitle;
-  const questionDurationSeconds = type === "map-province"
+  const questionDurationSeconds = type === "map-province" || type === "map-country"
     ? GAME_RULES.mapQuestionTimeSeconds
     : GAME_RULES.questionTimeSeconds;
   const questionDurationMs = questionDurationSeconds * 1000;
@@ -64,6 +85,9 @@ export default function QuizScreen({ type, continent = "all" }) {
   const [timeLeft, setTimeLeft] = useState(questionDurationSeconds);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [comboBonusTotal, setComboBonusTotal] = useState(0);
+  const [speedBonusTotal, setSpeedBonusTotal] = useState(0);
+  const [bestCombo, setBestCombo] = useState(0);
   const [quizData, setQuizData] = useState({
     quiz_number: 0,
     question_number: 0,
@@ -71,6 +95,7 @@ export default function QuizScreen({ type, continent = "all" }) {
     false_number: 0,
   });
   const decrementLife = useAuthStore((state) => state.decrementLife);
+  const { playSound } = useGameAudio();
 
   const timerRef = useRef(null);
   const confettiRef = useRef(null);
@@ -86,6 +111,9 @@ export default function QuizScreen({ type, continent = "all" }) {
     setScore(0);
     setTimeLeft(questionDurationSeconds);
     setStreak(0);
+    setComboBonusTotal(0);
+    setSpeedBonusTotal(0);
+    setBestCombo(0);
     setQuizData({ quiz_number: 0, question_number: 0, true_number: 0, false_number: 0 });
     try {
       let newQuestions = [];
@@ -111,6 +139,12 @@ export default function QuizScreen({ type, continent = "all" }) {
             continentCode,
           );
           break;
+        case "country-city":
+          newQuestions = await quizService.generateCountryCityQuestions(
+            GAME_RULES.questionsPerQuiz,
+            continentCode,
+          );
+          break;
         case "country-continent":
           newQuestions = await quizService.generateCountryContinentQuestions(
             GAME_RULES.questionsPerQuiz,
@@ -119,6 +153,12 @@ export default function QuizScreen({ type, continent = "all" }) {
           break;
         case "country-flag":
           newQuestions = await quizService.generateCountryFlagQuestions(
+            GAME_RULES.questionsPerQuiz,
+            continentCode,
+          );
+          break;
+        case "map-country":
+          newQuestions = await quizService.generateMapCountryQuestions(
             GAME_RULES.questionsPerQuiz,
             continentCode,
           );
@@ -178,17 +218,36 @@ export default function QuizScreen({ type, continent = "all" }) {
 
     setSelectedAnswer(index);
     setIsAnswered(true);
+    if (index !== null) playSound("answerSelect");
 
     let isCorrect = false;
     if (index === questions[currentQuestion]?.correctAnswer) {
-      const bonus = Math.min(streak, GAME_RULES.maxStreakBonus);
-      setScore((prev) => prev + GAME_RULES.pointsPerCorrectAnswer + bonus * GAME_RULES.streakBonusPerCorrectAnswer);
-      setStreak((prev) => prev + 1);
+      const nextCombo = streak + 1;
+      const comboBonus =
+        Math.min(streak, GAME_RULES.maxStreakBonus) *
+        GAME_RULES.streakBonusPerCorrectAnswer;
+      const speedBonus = Math.ceil(
+        (Math.max(0, timeLeft) / questionDurationSeconds) *
+          GAME_RULES.quickAnswerMaxBonus,
+      );
+      setScore(
+        (prev) =>
+          prev +
+          GAME_RULES.pointsPerCorrectAnswer +
+          comboBonus +
+          speedBonus,
+      );
+      setComboBonusTotal((prev) => prev + comboBonus);
+      setSpeedBonusTotal((prev) => prev + speedBonus);
+      setBestCombo((prev) => Math.max(prev, nextCombo));
+      setStreak(nextCombo);
       confettiRef.current?.play();
       isCorrect = true;
     } else {
       setStreak(0);
     }
+
+    setTimeout(() => playSound(isCorrect ? "correct" : "incorrect"), 140);
 
     // Her cevap için question_number + doğru/yanlış
     setQuizData((prev) => ({
@@ -213,7 +272,7 @@ export default function QuizScreen({ type, continent = "all" }) {
 
       nextQuestion();
     }, GAME_RULES.answerRevealMilliseconds);
-  }, [currentQuestion, isAnswered, nextQuestion, questions, streak]);
+  }, [currentQuestion, isAnswered, nextQuestion, playSound, questionDurationSeconds, questions, streak, timeLeft]);
 
   useEffect(() => {
     const isPlaying = phase === "playing" && questions.length > 0 && currentQuestion < questions.length;
@@ -227,13 +286,16 @@ export default function QuizScreen({ type, continent = "all" }) {
   }, [handleAnswer, isAnswered, notice, phase, timeLeft]);
 
   useEffect(() => {
-    const isPlaying =
-      phase === "playing" && questions.length > 0 && currentQuestion < questions.length;
-    if (!isPlaying) return;
-
+    const isResult =
+      phase === "playing" && questions.length > 0 && currentQuestion >= questions.length;
+    if (phase !== "intro" && phase !== "loading" && !isResult && phase !== "playing") return;
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
+        if (phase === "intro" || phase === "loading" || isResult) {
+          goToCategory();
+          return true;
+        }
         setNotice({
           title: "Meydan okuma sürüyor",
           message: "Oyundan çıkmadan önce bu turu tamamla. Her soru seni hedefe yaklaştırıyor!",
@@ -246,7 +308,7 @@ export default function QuizScreen({ type, continent = "all" }) {
     );
 
     return () => subscription.remove();
-  }, [currentQuestion, phase, questions.length]);
+  }, [currentQuestion, goToCategory, phase, questions.length]);
 
   useEffect(() => {
     return () => clearInterval(timerRef.current);
@@ -259,26 +321,89 @@ export default function QuizScreen({ type, continent = "all" }) {
 
     return (
       <>
-      <Animated.View
-        style={styles.startContainer}
-        entering={FadeIn.duration(500)}
-      >
-        <Lottie
-          source={require("../assets/lottie/quiz.json")}
-          autoPlay
-          loop
-          style={styles.lottieStart}
-        />
-        <Text style={styles.startTitle}>{introTitle}</Text>
-        <Text style={styles.startSubtitle}>
-          {introSubtitle}
-        </Text>
-        <TouchableOpacity style={styles.startButton} onPress={startGame}>
-          <Text style={styles.startButtonText}>BAŞLA</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>GERİ</Text>
-        </TouchableOpacity>
+      <Animated.View style={styles.startContainer} entering={FadeIn.duration(450)}>
+        <ScrollView
+          contentContainerStyle={styles.startContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.introTopBar}>
+            <TouchableOpacity
+              style={styles.introBackButton}
+              onPress={goToCategory}
+              accessibilityRole="button"
+              accessibilityLabel="Quiz kategorilerine dön"
+            >
+              <Ionicons name="arrow-back" size={21} color={COLORS.authText} />
+            </TouchableOpacity>
+            <View style={styles.introBrandPill}>
+              <Ionicons name="compass" size={15} color={COLORS.authPrimary} />
+              <Text style={styles.introBrandText}>YURTPUSULA</Text>
+            </View>
+          </View>
+
+          <LinearGradient
+            colors={[COLORS.authPrimary, COLORS.menuTurkeyAccent]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.introHero}
+          >
+            <View style={styles.introHeroGlow} />
+            <View style={styles.introHeroIcon}>
+              <Ionicons name={quizIcons[type] || "game-controller"} size={24} color={COLORS.authPrimary} />
+            </View>
+            <Lottie
+              source={require("../assets/lottie/quiz.json")}
+              autoPlay
+              loop
+              style={styles.lottieStart}
+            />
+            <Text style={styles.introEyebrow}>YENİ BİR KEŞİF BAŞLIYOR</Text>
+          </LinearGradient>
+
+          <View style={styles.introCopy}>
+            <Text style={styles.startTitle}>{introTitle}</Text>
+            <Text style={styles.startSubtitle}>{introSubtitle}</Text>
+          </View>
+
+          <View style={styles.introDetailsCard}>
+            <View style={styles.introDetailItem}>
+              <View style={styles.introDetailIcon}>
+                <Ionicons name="help-circle" size={19} color={COLORS.authPrimary} />
+              </View>
+              <Text style={styles.introDetailValue}>{GAME_RULES.questionsPerQuiz}</Text>
+              <Text style={styles.introDetailLabel}>SORU</Text>
+            </View>
+            <View style={styles.introDetailDivider} />
+            <View style={styles.introDetailItem}>
+              <View style={styles.introDetailIcon}>
+                <Ionicons name="time" size={19} color={COLORS.menuTurkeyAccent} />
+              </View>
+              <Text style={styles.introDetailValue}>{questionDurationSeconds} sn</Text>
+              <Text style={styles.introDetailLabel}>HER SORU</Text>
+            </View>
+            <View style={styles.introDetailDivider} />
+            <View style={styles.introDetailItem}>
+              <View style={styles.introDetailIcon}>
+                <Ionicons name="flash" size={19} color={COLORS.authAccent} />
+              </View>
+              <Text style={styles.introDetailValue}>+{GAME_RULES.pointsPerCorrectAnswer}</Text>
+              <Text style={styles.introDetailLabel}>DOĞRU CEVAP</Text>
+            </View>
+          </View>
+
+          <View style={styles.introActions}>
+            <TouchableOpacity
+              style={styles.startButton}
+              onPress={startGame}
+              activeOpacity={0.86}
+              accessibilityRole="button"
+            >
+              <Text style={styles.startButtonText}>MEYDAN OKUMAYA BAŞLA</Text>
+              <Ionicons name="arrow-forward-circle" size={23} color={COLORS.white} />
+            </TouchableOpacity>
+            <Text style={styles.introHint}>Hazır olduğunda pusulanı takip et</Text>
+          </View>
+        </ScrollView>
       </Animated.View>
       <NoticeModal {...notice} visible={!!notice} onCancel={closeNotice} />
       </>
@@ -310,6 +435,12 @@ export default function QuizScreen({ type, continent = "all" }) {
           startGame={startGame}
           confettiRef={confettiRef}
           quizData={quizData}
+          quizTitle={introTitle}
+          totalQuestions={questions.length}
+          comboBonusTotal={comboBonusTotal}
+          speedBonusTotal={speedBonusTotal}
+          bestCombo={bestCombo}
+          onChooseCategory={goToCategory}
         />
         <NoticeModal {...notice} visible={!!notice} onCancel={closeNotice} />
       </>
@@ -339,22 +470,17 @@ export default function QuizScreen({ type, continent = "all" }) {
 
           <View style={styles.streakPill}>
             <Ionicons name="flame" size={14} color={COLORS.menuTurkeyAccent} />
-            <Text style={styles.streakText}>{streak}</Text>
+            <Text style={styles.streakLabel}>COMBO</Text>
+            <Text style={styles.streakText}>x{streak}</Text>
           </View>
-
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            style={[styles.timerContainer, timeLeft <= 5 && styles.timerUrgent]}
-          >
-            <Ionicons name="time-outline" size={15} color={COLORS.white} />
-            <Text style={styles.timerText}>{timeLeft > 0 ? timeLeft : "BİTTİ"}</Text>
-          </Animated.View>
         </View>
 
-        <View style={styles.progressBarContainer}>
-          <TimerBar duration={questionDurationMs} paused={isAnswered || Boolean(notice)} resetTrigger={resetTimerKey} />
-        </View>
+        <TimerBar
+          duration={questionDurationMs}
+          remainingSeconds={timeLeft}
+          paused={isAnswered || Boolean(notice)}
+          resetTrigger={resetTimerKey}
+        />
       </View>
 
       <View>
@@ -362,7 +488,10 @@ export default function QuizScreen({ type, continent = "all" }) {
           key={`question-${currentQuestion}`}
           entering={SlideInUp.duration(300)}
           exiting={FadeOutUp.duration(200)}
-          style={styles.questionContainer}
+          style={[
+            styles.questionContainer,
+            type === "map-country" && styles.mapQuestionContainer,
+          ]}
         >
           {questions[currentQuestion]?.map && (
             <QuizMap {...questions[currentQuestion].map} />

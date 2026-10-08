@@ -7,6 +7,7 @@ import { useAuthStore } from "../store/authStore";
 import { initDB } from "@/model/db";
 import Loading from "@/components/Loading";
 import { COLORS } from "@/constants/Colors";
+import { GameAudioProvider } from "@/components/GameAudioProvider";
 
 function AppNavigator() {
   const router = useRouter();
@@ -51,15 +52,17 @@ function AppNavigator() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: COLORS.authBackground },
-      }}
-    >
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    <GameAudioProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: COLORS.authBackground },
+        }}
+      >
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </GameAudioProvider>
   );
 }
 
