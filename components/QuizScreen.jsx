@@ -16,8 +16,7 @@ import Animated, {
   SlideInDown,
   SlideInUp,
 } from "react-native-reanimated";
-import { styles } from "../assets/styles/quiz.styles";
-import { COLORS } from "../constants/Colors";
+import createStyles from "../assets/styles/quiz.styles";
 import { GAME_RULES } from "../constants/GameConfig";
 import { Ionicons } from "@expo/vector-icons";
 import { quizService } from "../service/quizService";
@@ -26,6 +25,7 @@ import { useAuthStore } from "../store/authStore";
 import ResultScreen from "./ResultScreen";
 import TimerBar from "./TimerBar";
 import Loading from "./Loading";
+import { useAppTheme } from "../hooks/useAppTheme";
 import NoticeModal from "./NoticeModal";
 import QuizMap from "./QuizMap";
 import QuizVisual from "./QuizVisual";
@@ -58,6 +58,7 @@ const quizIcons = {
 };
 
 export default function QuizScreen({ type, continent = "all", returnTo }) {
+  const { colors: COLORS, styles } = useAppTheme(createStyles);
   const router = useRouter();
   const categoryRoute =
     returnTo || (type?.startsWith("country-") || type === "map-country" ? "/quiz/world" : "/quiz/turkey");

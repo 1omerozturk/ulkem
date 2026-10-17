@@ -3,8 +3,8 @@ import { gunzipSync, strFromU8 } from "fflate";
 import { useMemo } from "react";
 import { View } from "react-native";
 import { SvgXml } from "react-native-svg";
-import { COLORS } from "../constants/Colors";
-import { styles } from "../assets/styles/quiz.styles";
+import createStyles from "../assets/styles/quiz.styles";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 let localFlags;
 const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -44,6 +44,7 @@ function getLocalFlags() {
 }
 
 export default function QuizVisual({ visual }) {
+  const { colors: COLORS, styles } = useAppTheme(createStyles);
   const flagXml = useMemo(() => {
     if (visual?.type !== "flag" || !visual.key) return null;
     return getLocalFlags()[visual.key] ?? null;

@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn, ZoomIn } from "react-native-reanimated";
-import { COLORS } from "../constants/Colors";
-import styles from "../assets/styles/notice-modal.styles";
+import createStyles from "../assets/styles/notice-modal.styles";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 export default function NoticeModal({
   visible,
@@ -15,6 +15,7 @@ export default function NoticeModal({
   onConfirm,
   onCancel,
 }) {
+  const { colors: COLORS, styles } = useAppTheme(createStyles);
   return (
     <Modal transparent visible={visible} animationType="fade" statusBarTranslucent onRequestClose={onCancel}>
       <View style={styles.backdrop}>

@@ -1,9 +1,10 @@
-import { COLORS } from "@/constants/Colors";
 import QuizCategoryScreen from "@/components/QuizCategoryScreen";
 import { worldQuizData } from "../index";
 import { WORLD_CONTINENTS } from "@/model/world/continents";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 export default function WorldQuizPage() {
+  const { colors } = useAppTheme();
   return (
     <QuizCategoryScreen
       title="Dünya quizleri"
@@ -12,8 +13,8 @@ export default function WorldQuizPage() {
       items={worldQuizData}
       returnTo="/quiz/world"
       continentOptions={WORLD_CONTINENTS}
-      accent={COLORS.menuWorldAccent}
-      tint={COLORS.menuWorld}
+      accent={colors.menuWorldAccent}
+      tint={colors.menuWorld}
       note="Her doğru cevap dünyayı biraz daha yakından tanıtır."
     />
   );

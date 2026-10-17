@@ -1,17 +1,24 @@
 import React, { useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Platform, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import { useAuthStore } from "../store/authStore";
-import { COLORS } from "../constants/Colors";
 import { GAME_RULES } from "../constants/GameConfig";
-import styles from "../assets/styles/buy-live.styles";
+import { createStyles } from "../assets/styles/buy-live.styles";
 import Loading from "./Loading";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 export default function BuyLive() {
+  const { colors: COLORS, styles } = useAppTheme(createStyles);
   const user = useAuthStore((state) => state.user);
   const buyLife = useAuthStore((state) => state.buyLife);
   const [isBuying, setIsBuying] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const hasMissingLives = Boolean(user && user.lives < GAME_RULES.maxLives);
+  const isExpoGo = Constants.appOwnership === "expo";
+  const canLoadNativeAds = Platform.OS !== "web" && !isExpoGo;
+  // This module imports a native AdMob TurboModule. Keep it unevaluated inside Expo Go.
+  const RewardedLifeAd = canLoadNativeAds ? require("./RewardedLifeAd").default : null;
 
   if (!user) return null;
 
@@ -43,8 +50,12 @@ export default function BuyLive() {
           <Ionicons name="heart" size={22} color={COLORS.authError} />
         </View>
         <View style={styles.headingCopy}>
-          <Text style={styles.title}>Puanla can kazan</Text>
-          <Text style={styles.description}>{GAME_RULES.lifePurchaseCost} puan karşılığında 1 can</Text>
+          <Text style={styles.title}>Canlarını yenile</Text>
+          <Text style={styles.description}>
+            {hasMaxLives
+              ? "Canların dolu. Yeni bir keşfe hazırsın!"
+              : "İstersen reklamla hemen 1 can kazanabilir ya da puan kullanabilirsin."}
+          </Text>
         </View>
       </View>
 
@@ -68,8 +79,38 @@ export default function BuyLive() {
         </View>
       </View>
 
+      {hasMissingLives ? (
+        !canLoadNativeAds ? (
+          <View style={styles.rewardedAdSection}>
+            <Text style={styles.rewardedAdHint}>
+              Ödüllü reklamı tamamladığında 1 can kazanabilirsin. Reklam özelliği bu test ortamında kullanılamıyor.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.featuredReward}>
+            <View style={styles.featuredRewardCopy}>
+              <View style={styles.featuredRewardTitleRow}>
+                <Ionicons name="sparkles" size={16} color={COLORS.authAccent} />
+                <Text style={styles.featuredRewardTitle}>Hemen 1 can kazan</Text>
+              </View>
+              <Text style={styles.featuredRewardSubtitle}>İsteğe bağlı ödüllü reklam</Text>
+            </View>
+            <RewardedLifeAd
+              featured
+              showDivider={false}
+              onReward={async () => {
+                const rewarded = await useAuthStore.getState().earnLifeFromRewardedAd();
+                setFeedback(rewarded
+                  ? { type: "success", text: "Reklamı tamamladın. 1 can eklendi!" }
+                  : { type: "error", text: "Canların dolmuş olabilir. Can durumunu yenileyip kontrol et." });
+              }}
+            />
+          </View>
+        )
+      ) : null}
+
       <TouchableOpacity
-        style={[styles.button, isDisabled && styles.buttonDisabled]}
+        style={[styles.button, hasMissingLives && styles.buttonSecondary, isDisabled && styles.buttonDisabled]}
         onPress={handleBuy}
         disabled={isDisabled}
         activeOpacity={0.82}
@@ -81,8 +122,8 @@ export default function BuyLive() {
           <Loading compact message="Can satın alınıyor" />
         ) : (
           <>
-            <Ionicons name="add-circle-outline" size={21} color={COLORS.white} />
-            <Text style={styles.buttonText}>{GAME_RULES.lifePurchaseCost} puanla 1 can al</Text>
+            <Ionicons name="add-circle-outline" size={21} color={hasMissingLives ? COLORS.authPrimary : COLORS.white} />
+            <Text style={[styles.buttonText, hasMissingLives && styles.buttonTextSecondary]}>{GAME_RULES.lifePurchaseCost} puanla 1 can al</Text>
           </>
         )}
       </TouchableOpacity>
@@ -98,9 +139,7 @@ export default function BuyLive() {
       {feedback ? (
         <Text
           accessibilityLiveRegion="polite"
-          style={
-            feedback.type === "success" ? styles.successMessage : styles.errorMessage
-          }
+          style={feedback.type === "success" ? styles.successMessage : styles.errorMessage}
         >
           {feedback.text}
         </Text>

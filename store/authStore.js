@@ -2,21 +2,51 @@ import * as SecureStore from 'expo-secure-store'
 import { create } from 'zustand'
 import { GAME_RULES } from '../constants/GameConfig'
 import {
+  AVATARS,
+  DEFAULT_AVATAR_ID,
+  getAvatarProfile,
+  getAvatarPurchaseCost,
+  getAvatarUnlockPoints,
+  getOwnedAvatarIds,
+  getUnlockedAvatarCount,
+  isLocalAvatarProfile,
+} from '../constants/Avatars'
+import {
   getUser,
   getUserWithQuizData,
   getUserWithUserName,
   insertUser,
   updateUserLives,
-  updateUserLivesToBuy,
+  purchaseUserLife,
+  grantUserLife,
+  updateUserAvatarData,
+  purchaseUserAvatar,
   updateUserQuizAndScore,
-  updateUserScore,
+  addUserBonusScore,
 } from '../model/db'
+
+const getFirstRunKey = (userId) => `yurtpusula_first_run_complete_${userId}`
+
+const normalizeUserAvatarData = async (user) => {
+  const profile = isLocalAvatarProfile(user.profile)
+    ? user.profile
+    : getAvatarProfile(DEFAULT_AVATAR_ID)
+  const ownedAvatars = getOwnedAvatarIds(user.owned_avatars, profile)
+  const ownedAvatarValue = JSON.stringify(ownedAvatars)
+
+  if (profile !== user.profile || ownedAvatarValue !== user.owned_avatars) {
+    await updateUserAvatarData(user.id, profile, ownedAvatars)
+  }
+
+  return { ...user, profile, owned_avatars: ownedAvatarValue }
+}
 
 // await db.execAsync(`DROP TABLE IF EXISTS users;`)
 // initDB()
 
 export const useAuthStore = create((set, get) => ({
   user: null,
+  hasCompletedFirstRun: true,
   isLoading: false,
   error: null,
 
@@ -25,17 +55,22 @@ export const useAuthStore = create((set, get) => ({
     try {
       const existingUser = await getUserWithUserName(username)
       if (existingUser) throw new Error('Kullanıcı adı zaten alınmış')
-      const profileImage = `https://api.dicebear.com/7.x/avataaars/png?seed=${username}`
-      const insertId = await insertUser(username, password, profileImage)
-      const newUser = {
+      const profile = getAvatarProfile(DEFAULT_AVATAR_ID)
+      const insertId = await insertUser(username, password, profile)
+      const newUser = await getUser(insertId) || {
         id: insertId,
-        profile: profileImage,
+        username,
+        profile,
         score: 0,
+        lifetime_score: 0,
+        owned_avatars: JSON.stringify([DEFAULT_AVATAR_ID]),
         lives: GAME_RULES.maxLives,
         last_life_update: new Date().toISOString(),
       }
 
+      await SecureStore.setItemAsync(getFirstRunKey(newUser.id), 'false')
       await SecureStore.setItemAsync('user', JSON.stringify(newUser))
+      set({ user: newUser, hasCompletedFirstRun: false })
       return { success: true }
     } catch (error) {
       set({ error: error.message })
@@ -48,12 +83,13 @@ export const useAuthStore = create((set, get) => ({
   login: async (username, password) => {
     set({ isLoading: true, error: null })
     try {
-      const user = await getUserWithQuizData(username, password)
+      let user = await getUserWithQuizData(username, password)
       if (!user) throw new Error('Kullanıcı adı veya şifre hatalı')
-      console.log(user)
-      set({ user })
+      user = await normalizeUserAvatarData(user)
+      const firstRunComplete = await SecureStore.getItemAsync(getFirstRunKey(user.id))
+      set({ user, hasCompletedFirstRun: firstRunComplete !== 'false' })
       await SecureStore.setItemAsync('user', JSON.stringify(user))
-      return { success: true, user: user }
+      return { success: true, user }
     } catch (error) {
       set({ error: error.message })
       return { success: false, error: error.message }
@@ -64,8 +100,21 @@ export const useAuthStore = create((set, get) => ({
 
   logout: async () => {
     await SecureStore.deleteItemAsync('user')
-    set({ user: null })
+    set({ user: null, hasCompletedFirstRun: true })
     return { success: true }
+  },
+
+  completeFirstRun: async () => {
+    const user = get().user
+    if (!user) return false
+    try {
+      await SecureStore.setItemAsync(getFirstRunKey(user.id), 'true')
+      set({ hasCompletedFirstRun: true })
+      return true
+    } catch (error) {
+      console.error('İlk kurulum tercihi kaydedilemedi:', error)
+      return false
+    }
   },
 
   checkAuth: async () => {
@@ -74,14 +123,17 @@ export const useAuthStore = create((set, get) => ({
       const userJson = await SecureStore.getItemAsync('user')
       if (userJson) {
         const user = JSON.parse(userJson)
-        const dbUser = await getUser(user.id)
+        let dbUser = await getUser(user.id)
         if (dbUser) {
-          set({ user: dbUser })
+          dbUser = await normalizeUserAvatarData(dbUser)
+          await SecureStore.setItemAsync('user', JSON.stringify(dbUser))
+          const firstRunComplete = await SecureStore.getItemAsync(getFirstRunKey(dbUser.id))
+          set({ user: dbUser, hasCompletedFirstRun: firstRunComplete !== 'false' })
         } else {
-          set({ user: null })
+          set({ user: null, hasCompletedFirstRun: true })
         }
       } else {
-        set({ user: null })
+        set({ user: null, hasCompletedFirstRun: true })
       }
     } catch (error) {
       console.error('Auth kontrolü hatası:', error)
@@ -140,11 +192,13 @@ export const useAuthStore = create((set, get) => ({
         newTotalQuestionNumber, // Yeni alan burada devreye giriyor!
         newTotalTrueNumber,
         newTotalFalseNumber,
+        score,
       )
 
       const updatedUser = {
         ...user,
         score: newTotalScore,
+        lifetime_score: (user.lifetime_score ?? user.score ?? 0) + score,
         quizData: {
           quiz_number: newTotalQuizNumber,
           question_number: newTotalQuestionNumber,
@@ -155,8 +209,33 @@ export const useAuthStore = create((set, get) => ({
 
       set({ user: updatedUser })
       await SecureStore.setItemAsync('user', JSON.stringify(updatedUser))
+      return true
     } catch (error) {
       console.error('Puan güncelleme hatası:', error)
+      return false
+    }
+  },
+
+  addBonusScore: async (bonusPoints) => {
+    try {
+      const user = get().user
+      const points = Math.max(0, Math.floor(Number(bonusPoints) || 0))
+      if (!user || points <= 0) return false
+
+      const saved = await addUserBonusScore(user.id, points)
+      if (!saved) return false
+      const currentUser = get().user || user
+      const updatedUser = {
+        ...currentUser,
+        score: currentUser.score + points,
+        lifetime_score: (currentUser.lifetime_score ?? currentUser.score ?? 0) + points,
+      }
+      set({ user: updatedUser })
+      await SecureStore.setItemAsync('user', JSON.stringify(updatedUser))
+      return true
+    } catch (error) {
+      console.error('Reklam puanı eklenemedi:', error)
+      return false
     }
   },
 
@@ -230,16 +309,17 @@ export const useAuthStore = create((set, get) => ({
       const user = get().user
       if (!user || user.lives >= GAME_RULES.maxLives || user.score < GAME_RULES.lifePurchaseCost) return false
 
-      const updatedLives = user.lives + 1
-      const updatedScore = user.score - GAME_RULES.lifePurchaseCost
-
-      await updateUserLivesToBuy(user.username, updatedLives)
-      await updateUserScore(user.id, updatedScore)
+      const purchased = await purchaseUserLife(
+        user.username,
+        GAME_RULES.lifePurchaseCost,
+        GAME_RULES.maxLives,
+      )
+      if (!purchased) return false
 
       const updatedUser = {
         ...user,
-        lives: updatedLives,
-        score: updatedScore,
+        lives: user.lives + 1,
+        score: user.score - GAME_RULES.lifePurchaseCost,
         last_life_update: user.last_life_update || new Date().toISOString(),
       }
       set({ user: updatedUser })
@@ -247,6 +327,104 @@ export const useAuthStore = create((set, get) => ({
       return true
     } catch (error) {
       console.error('Buy Life Error:', error)
+      return false
+    }
+  },
+
+  updateProfileAvatar: async (avatarId) => {
+    try {
+      const user = get().user
+      if (!user || !AVATARS.some((avatar) => avatar.id === avatarId)) return false
+      const ownedAvatars = getOwnedAvatarIds(user.owned_avatars, user.profile)
+      if (!ownedAvatars.includes(avatarId)) return false
+      const profile = getAvatarProfile(avatarId)
+      await updateUserAvatarData(user.id, profile, ownedAvatars)
+      const updatedUser = { ...user, profile, owned_avatars: JSON.stringify(ownedAvatars) }
+      set({ user: updatedUser })
+      await SecureStore.setItemAsync('user', JSON.stringify(updatedUser))
+      return true
+    } catch (error) {
+      console.error('Profil avatarı güncellenemedi:', error)
+      return false
+    }
+  },
+
+  purchaseProfileAvatar: async (avatarId) => {
+    try {
+      const user = get().user
+      const avatarIndex = AVATARS.findIndex((avatar) => avatar.id === avatarId)
+      if (!user || avatarIndex < 0) return { success: false, reason: 'invalid_avatar' }
+
+      const lifetimeScore = user.lifetime_score ?? user.score ?? 0
+      const unlockPoints = getAvatarUnlockPoints(avatarIndex)
+      const ownedAvatars = getOwnedAvatarIds(user.owned_avatars, user.profile)
+      const profile = getAvatarProfile(avatarId)
+      if (ownedAvatars.includes(avatarId)) {
+        await updateUserAvatarData(user.id, profile, ownedAvatars)
+        const updatedUser = { ...user, profile, owned_avatars: JSON.stringify(ownedAvatars) }
+        set({ user: updatedUser })
+        await SecureStore.setItemAsync('user', JSON.stringify(updatedUser))
+        return { success: true, purchased: false }
+      }
+
+      if (getUnlockedAvatarCount(lifetimeScore) <= avatarIndex) {
+        return { success: false, reason: 'locked', unlockPoints }
+      }
+
+      const cost = getAvatarPurchaseCost(avatarIndex)
+      if (user.score < cost) {
+        return { success: false, reason: 'insufficient_points', cost }
+      }
+
+      const newlyOwnedAvatars = [...ownedAvatars, avatarId]
+      const saved = await purchaseUserAvatar(
+        user.id,
+        profile,
+        cost,
+        newlyOwnedAvatars,
+      )
+      if (!saved) return { success: false, reason: 'insufficient_points', cost }
+
+      const updatedUser = {
+        ...user,
+        profile,
+        score: user.score - cost,
+        owned_avatars: JSON.stringify(newlyOwnedAvatars),
+      }
+      set({ user: updatedUser })
+      await SecureStore.setItemAsync('user', JSON.stringify(updatedUser))
+      return { success: true, purchased: true, cost }
+    } catch (error) {
+      console.error('Avatar satın alınamadı:', error)
+      return { success: false, reason: 'error' }
+    }
+  },
+
+  earnLifeFromRewardedAd: async () => {
+    try {
+      await get().refreshLivesIfNeeded()
+      const user = get().user
+      if (!user || user.lives >= GAME_RULES.maxLives) return false
+
+      const saved = await grantUserLife(
+        user.username,
+        GAME_RULES.maxLives,
+        new Date().toISOString(),
+      )
+      if (!saved) return false
+
+      const currentUser = get().user || user
+
+      const updatedUser = {
+        ...currentUser,
+        lives: currentUser.lives + 1,
+        last_life_update: currentUser.last_life_update || new Date().toISOString(),
+      }
+      set({ user: updatedUser })
+      await SecureStore.setItemAsync('user', JSON.stringify(updatedUser))
+      return true
+    } catch (error) {
+      console.error('Reklam ödülü cana çevrilemedi:', error)
       return false
     }
   },

@@ -11,14 +11,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import styles from "../../assets/styles/login.styles";
+import createStyles from "../../assets/styles/login.styles";
 import Loading from "../../components/Loading";
 import NoticeModal from "../../components/NoticeModal";
-import { COLORS } from "../../constants/Colors";
 import { BRAND } from "../../constants/GameConfig";
 import { useAuthStore } from "../../store/authStore";
+import { useAppTheme } from "../../hooks/useAppTheme";
 
 const LoginScreen = () => {
+  const { colors: COLORS, styles } = useAppTheme(createStyles);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);

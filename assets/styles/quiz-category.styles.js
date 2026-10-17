@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
-import { COLORS } from "../../constants/Colors";
+import { COLORS as BASE_COLORS } from "../../constants/Colors";
 
-const styles = StyleSheet.create({
+export const createStyles = (COLORS = BASE_COLORS) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.authBackground },
   content: {
     flexGrow: 1,
@@ -172,4 +172,4 @@ const styles = StyleSheet.create({
   noteText: { flex: 1, fontSize: 12, lineHeight: 18, fontWeight: "700", marginLeft: 9 },
 });
 
-export default styles;
+export default createStyles;

@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
-import { COLORS } from "../constants/Colors";
 import { GAME_RULES } from "../constants/GameConfig";
 import { useAuthStore } from "../store/authStore";
-import styles from "../assets/styles/life.styles";
+import createStyles from "../assets/styles/life.styles";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 export default function LifeTimer() {
+  const { colors: COLORS, styles } = useAppTheme(createStyles);
   const lives = useAuthStore((state) => state.user?.lives ?? 0);
   const getRemainingTimeForNextLife = useAuthStore(
     (state) => state.getRemainingTimeForNextLife,

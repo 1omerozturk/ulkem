@@ -21,7 +21,9 @@ const GAME_RULES = Object.freeze({
   maxStreakBonus: 10,
   maxLives: 10,
   lifeRechargeMinutes: 10,
-  lifePurchaseCost: 500,
+  // A life should be reachable after a few ordinary rounds, while keeping
+  // earned points meaningful for avatar unlocks and other rewards.
+  lifePurchaseCost: 250,
 });
 
 module.exports = { BRAND, GAME_RULES };

@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
-import { COLORS } from "../../constants/Colors";
+import { COLORS as BASE_COLORS } from "../../constants/Colors";
 
-const styles = StyleSheet.create({
+export const createStyles = (COLORS = BASE_COLORS) => StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: COLORS.authBackground,
@@ -98,4 +98,4 @@ const styles = StyleSheet.create({
   timerValueFull: { color: COLORS.authSuccess, fontSize: 16 },
 });
 
-export default styles;
+export default createStyles;

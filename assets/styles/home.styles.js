@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
-import { COLORS } from "../../constants/Colors";
+import { COLORS as BASE_COLORS } from "../../constants/Colors";
 
-const styles = StyleSheet.create({
+export const createStyles = (COLORS = BASE_COLORS) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.authBackground },
   scrollContent: {
     flexGrow: 1,
@@ -171,8 +171,8 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     borderWidth: 1,
   },
-  worldCard: { backgroundColor: COLORS.menuWorld, borderColor: "#D4E3F0" },
-  turkeyCard: { backgroundColor: COLORS.menuTurkey, borderColor: "#F0DCD6" },
+  worldCard: { backgroundColor: COLORS.menuWorld, borderColor: COLORS.authBorder },
+  turkeyCard: { backgroundColor: COLORS.menuTurkey, borderColor: COLORS.authBorder },
   categoryIcon: {
     width: 57,
     height: 57,
@@ -180,8 +180,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 19,
   },
-  worldIcon: { backgroundColor: "#D4E5F2" },
-  turkeyIcon: { backgroundColor: "#F2DAD4" },
+  worldIcon: { backgroundColor: COLORS.menuWorldAccent + "25" },
+  turkeyIcon: { backgroundColor: COLORS.menuTurkeyAccent + "25" },
   categoryImage: { width: 38, height: 38 },
   categoryCopy: { flex: 1, marginLeft: 12, marginRight: 8 },
   categoryEyebrow: {
@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.35,
   },
-  worldCount: { color: COLORS.menuWorldAccent, backgroundColor: "#D5E5F1" },
-  turkeyCount: { color: COLORS.menuTurkeyAccent, backgroundColor: "#F1DAD4" },
+  worldCount: { color: COLORS.menuWorldAccent, backgroundColor: COLORS.menuWorld },
+  turkeyCount: { color: COLORS.menuTurkeyAccent, backgroundColor: COLORS.menuTurkey },
   categoryAction: {
     width: 35,
     height: 35,
@@ -225,8 +225,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 13,
   },
-  worldAction: { backgroundColor: "#D4E5F2" },
-  turkeyAction: { backgroundColor: "#F2DAD4" },
+  worldAction: { backgroundColor: COLORS.menuWorld },
+  turkeyAction: { backgroundColor: COLORS.menuTurkey },
   footerNote: {
     flexDirection: "row",
     alignItems: "center",
@@ -242,4 +242,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default styles;
+export default createStyles;

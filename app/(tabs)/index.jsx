@@ -1,7 +1,8 @@
-import styles from "@/assets/styles/home.styles";
-import { COLORS } from "@/constants/Colors";
+import createStyles from "@/assets/styles/home.styles";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { BRAND, GAME_RULES } from "@/constants/GameConfig";
 import BrandMark from "@/components/BrandMark";
+import LocalAvatar from "@/components/LocalAvatar"
 import { useAuthStore } from "@/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -78,6 +79,7 @@ export const turkeyQuizData = [
 export const data = { world: worldQuizData, turkey: turkeyQuizData };
 
 export default function HomeScreen() {
+  const { colors: COLORS, styles } = useAppTheme(createStyles);
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const refreshLivesIfNeeded = useAuthStore(
@@ -101,7 +103,7 @@ export default function HomeScreen() {
         <View style={styles.topBar}>
           <View style={styles.brandLockup}>
             <View style={styles.brandMark}>
-              <BrandMark style={{ width: 43, height: 43 }} />
+               <LocalAvatar size={44} profile={user?.profile} style={styles.avatar} />
             </View>
             <View>
               <Text style={styles.brandName}>{BRAND.name.toLocaleUpperCase("tr-TR")}</Text>
@@ -129,7 +131,7 @@ export default function HomeScreen() {
         </View>
 
         <LinearGradient
-          colors={[COLORS.authPrimary, "#104F44"]}
+          colors={[COLORS.authPrimary, COLORS.authPrimaryPressed]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.heroCard}

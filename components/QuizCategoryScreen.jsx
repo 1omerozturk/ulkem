@@ -4,9 +4,10 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { BackHandler, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
-import styles from "../assets/styles/quiz-category.styles";
+import createStyles from "../assets/styles/quiz-category.styles";
 import { useGameAudio } from "./GameAudioProvider";
 import WorldMap from "./WorldMap";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 const iconColors = {
   "country-capital": ["#466E9E", "#E6EFF9"],
@@ -32,6 +33,7 @@ export default function QuizCategoryScreen({
   continentOptions,
   returnTo,
 }) {
+  const { colors: COLORS, styles } = useAppTheme(createStyles);
   const router = useRouter();
   const [selectedContinent, setSelectedContinent] = useState("all");
   const { vibrate } = useGameAudio();
@@ -79,7 +81,7 @@ export default function QuizCategoryScreen({
             accessibilityRole="button"
             accessibilityLabel="Geri dön"
           >
-            <Ionicons name="arrow-back" size={21} color="#203730" />
+            <Ionicons name="arrow-back" size={21} color={COLORS.authText} />
           </TouchableOpacity>
           <View style={[styles.countPill, { backgroundColor: tint }]}>
             <Ionicons name="game-controller" size={15} color={accent} />
@@ -104,7 +106,7 @@ export default function QuizCategoryScreen({
             <Ionicons
               name={title.toLowerCase().includes("dünya") ? "globe" : "compass"}
               size={42}
-              color="#FFFFFF"
+              color={COLORS.white}
             />
           </View>
           <View style={styles.heroOrb} />

@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
-import { COLORS } from "../../constants/Colors";
+import { COLORS as BASE_COLORS } from "../../constants/Colors";
 
-const styles = StyleSheet.create({
+export const createStyles = (COLORS = BASE_COLORS) => StyleSheet.create({
   card: {
     width: "100%",
     maxWidth: 480,
@@ -94,10 +94,75 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     backgroundColor: "#A7B9B1",
   },
+  buttonSecondary: { marginTop: 10, backgroundColor: COLORS.authSurface, borderWidth: 1, borderColor: COLORS.authBorder },
   buttonText: {
     color: COLORS.white,
     fontSize: 16,
     fontWeight: "800",
+  },
+  buttonTextSecondary: { color: COLORS.authPrimary, fontSize: 14, fontWeight: "800" },
+  rewardedAdSection: {
+    marginTop: 8,
+  },
+  featuredReward: { marginTop: 17, padding: 12, borderRadius: 18, backgroundColor: COLORS.authPrimarySoft, borderWidth: 1, borderColor: COLORS.authBorder },
+  featuredRewardCopy: { marginBottom: 4 },
+  featuredRewardTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  featuredRewardTitle: { color: COLORS.authText, fontSize: 13, fontWeight: "900" },
+  featuredRewardSubtitle: { color: COLORS.authTextMuted, fontSize: 10, marginTop: 2, marginLeft: 22 },
+  rewardedAdDivider: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginVertical: 14,
+  },
+  rewardedAdLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.authBorder,
+  },
+  rewardedAdOr: {
+    color: COLORS.authTextMuted,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+  rewardedAdButton: {
+    minHeight: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.authPrimary,
+    backgroundColor: COLORS.authPrimarySoft,
+  },
+  rewardedAdButtonFeatured: {
+    minHeight: 58,
+    backgroundColor: COLORS.authPrimary,
+    borderColor: COLORS.authPrimary,
+    shadowColor: COLORS.authShadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  rewardedAdButtonDisabled: {
+    opacity: 0.58,
+  },
+  rewardedAdButtonText: {
+    color: COLORS.authPrimary,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  rewardedAdButtonTextFeatured: { color: COLORS.authBackground, fontSize: 15, fontWeight: "900" },
+  rewardedAdHint: {
+    color: COLORS.authTextMuted,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
+    marginTop: 8,
   },
   helperText: {
     color: COLORS.authTextMuted,
@@ -124,4 +189,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default styles;
+export default createStyles;

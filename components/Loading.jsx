@@ -1,13 +1,14 @@
 import Lottie from "lottie-react-native";
 import { StyleSheet, Text, View } from "react-native";
-import { COLORS } from "../constants/Colors";
 import { BRAND } from "../constants/GameConfig";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 export default function Loading({
   message = BRAND.loadingMessage,
   fullScreen = true,
   compact = false,
 }) {
+  const { colors } = useAppTheme();
   if (compact) {
     return (
       <View
@@ -27,7 +28,7 @@ export default function Loading({
 
   return (
     <View
-      style={[styles.container, fullScreen && styles.fullScreen]}
+      style={[styles.container, fullScreen && { backgroundColor: colors.authBackground }]}
       accessibilityRole="progressbar"
       accessibilityLabel={message}
     >
@@ -37,8 +38,8 @@ export default function Loading({
         loop
         style={styles.animation}
       />
-      <Text style={styles.brand}>{BRAND.name}</Text>
-      <Text style={styles.message}>{message}</Text>
+      <Text style={[styles.brand, { color: colors.authText }]}>{BRAND.name}</Text>
+      <Text style={[styles.message, { color: colors.authTextMuted }]}>{message}</Text>
     </View>
   );
 }
@@ -50,7 +51,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
   },
-  fullScreen: { backgroundColor: COLORS.authBackground },
   compactContainer: {
     width: 30,
     height: 30,
@@ -60,14 +60,12 @@ const styles = StyleSheet.create({
   compactAnimation: { width: 30, height: 30 },
   animation: { width: 156, height: 156, marginBottom: 15 },
   brand: {
-    color: COLORS.authText,
     fontSize: 22,
     lineHeight: 29,
     fontWeight: "900",
     letterSpacing: 0.3,
   },
   message: {
-    color: COLORS.authTextMuted,
     fontSize: 14,
     lineHeight: 21,
     marginTop: 4,

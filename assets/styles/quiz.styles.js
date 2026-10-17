@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
-import { COLORS } from "../../constants/Colors";
+import { COLORS as BASE_COLORS } from "../../constants/Colors";
 
-export const styles = StyleSheet.create({
+export const createStyles = (COLORS = BASE_COLORS) => StyleSheet.create({
   startContainer: {
     flex: 1,
     paddingHorizontal: 0,
@@ -181,7 +181,8 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.authBackground,
   },
   resultBackdrop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
-  resultContent: { flex: 1, justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 13, paddingBottom: 18 },
+  resultScroll: { flex: 1 },
+  resultContent: { flexGrow: 1, justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 13, paddingBottom: 18 },
   resultTopline: { height: 35, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   resultBrandPill: { height: 32, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, borderRadius: 16, backgroundColor: COLORS.white },
   resultBrandText: { color: COLORS.authPrimary, fontSize: 10, fontWeight: "900", letterSpacing: 0.9 },
@@ -219,9 +220,9 @@ export const styles = StyleSheet.create({
   resultStatsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-around" },
   resultStatItem: { minWidth: 64, alignItems: "center" },
   resultStatIcon: { width: 26, height: 26, alignItems: "center", justifyContent: "center", marginBottom: 3, borderRadius: 9 },
-  resultCorrectIcon: { backgroundColor: "#E3F3E8" },
-  resultWrongIcon: { backgroundColor: "#F9E9E6" },
-  resultQuestionIcon: { backgroundColor: "#FFF1D9" },
+  resultCorrectIcon: { backgroundColor: `${COLORS.authSuccess}22` },
+  resultWrongIcon: { backgroundColor: `${COLORS.authError}22` },
+  resultQuestionIcon: { backgroundColor: `${COLORS.authAccent}2A` },
   resultStatValue: { color: COLORS.authText, fontSize: 15, fontWeight: "900" },
   resultStatLabel: { marginTop: 1, color: COLORS.authTextMuted, fontSize: 8, fontWeight: "900", letterSpacing: 0.7 },
   resultBonusPanel: { marginTop: 12, paddingTop: 9, borderTopWidth: 1, borderTopColor: COLORS.authBorder },
@@ -230,6 +231,19 @@ export const styles = StyleSheet.create({
   resultBonusTotal: { color: COLORS.authPrimary, fontSize: 15, fontWeight: "900" },
   resultBonusDetail: { marginTop: 3, color: COLORS.authTextMuted, fontSize: 10, fontWeight: "700" },
   resultActions: { gap: 9 },
+  resultDoubleCard: { padding: 12, borderRadius: 19, backgroundColor: COLORS.authSurface, borderWidth: 1.5, borderColor: COLORS.authAccent, shadowColor: COLORS.authShadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 2 },
+  resultDoubleHeader: { flexDirection: "row", alignItems: "center", gap: 9 },
+  resultDoubleIcon: { width: 38, height: 38, alignItems: "center", justifyContent: "center", borderRadius: 13, backgroundColor: COLORS.authPrimarySoft },
+  resultDoubleCopy: { flex: 1 },
+  resultDoubleTitle: { color: COLORS.authText, fontSize: 14, fontWeight: "900" },
+  resultDoubleDescription: { color: COLORS.authTextMuted, fontSize: 10, lineHeight: 14, marginTop: 2 },
+  resultDoublePrize: { minHeight: 40, flexDirection: "row", alignItems: "center", gap: 7, marginTop: 9, paddingHorizontal: 10, borderRadius: 13, backgroundColor: COLORS.authSurfaceTint },
+  resultDoublePrizeText: { flex: 1, color: COLORS.authPrimary, fontSize: 13, fontWeight: "900" },
+  resultDoubleMultiplier: { minWidth: 39, height: 27, alignItems: "center", justifyContent: "center", borderRadius: 9, backgroundColor: COLORS.authAccent },
+  resultDoubleMultiplierText: { color: COLORS.authText, fontSize: 13, fontWeight: "900" },
+  resultDoubleUnavailable: { color: COLORS.authTextMuted, fontSize: 10, lineHeight: 15, marginTop: 9, textAlign: "center" },
+  resultDoubleError: { color: COLORS.authError, fontSize: 10, marginTop: 6, textAlign: "center" },
+  resultDoubleFootnote: { color: COLORS.authTextMuted, fontSize: 9, textAlign: "center", marginTop: 5 },
   categoriesButton: { minHeight: 49, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, paddingHorizontal: 15, borderRadius: 16, backgroundColor: COLORS.authSurface, borderWidth: 1, borderColor: COLORS.authBorder },
   categoriesButtonText: { color: COLORS.authPrimary, fontSize: 12, fontWeight: "900", letterSpacing: 0.35 },
   restartButton: {
@@ -245,3 +259,5 @@ export const styles = StyleSheet.create({
   },
   restartButtonText: { color: COLORS.white, fontSize: 12, fontWeight: "900", letterSpacing: 0.45 },
 });
+
+export default createStyles;

@@ -1,7 +1,8 @@
 import { View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import styles from "../assets/styles/quiz-map.styles";
+import createStyles from "../assets/styles/quiz-map.styles";
 import WorldMap from "./WorldMap";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 const maps = {
   turkey: {
@@ -11,6 +12,7 @@ const maps = {
 };
 
 export default function QuizMap({ mapId, highlightedId }) {
+  const { colors, styles } = useAppTheme(createStyles);
   if (mapId === "world") {
     return <WorldMap highlightedId={highlightedId} compact />;
   }
@@ -26,8 +28,8 @@ export default function QuizMap({ mapId, highlightedId }) {
             <Path
               key={`${shape.id}-${index}`}
               d={path}
-              fill={highlighted ? "#F1A43A" : "#DDEAE3"}
-              stroke={highlighted ? "#B96B16" : "#FFFFFF"}
+              fill={highlighted ? colors.authAccent : colors.authPrimarySoft}
+              stroke={highlighted ? colors.authPrimary : colors.authSurface}
               strokeWidth={highlighted ? 2 : 1.25}
               strokeLinejoin="round"
             />

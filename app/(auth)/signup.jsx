@@ -10,14 +10,15 @@ import {
   ScrollView,
 } from "react-native";
 
-import { COLORS } from "../../constants/Colors";
-import styles from "../../assets/styles/signup.styles";
+import createStyles from "../../assets/styles/signup.styles";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "../../store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import Loading from "../../components/Loading";
+import { useAppTheme } from "../../hooks/useAppTheme";
 
 const SignUpScreen = () => {
+  const { colors: COLORS, styles } = useAppTheme(createStyles);
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -38,11 +39,7 @@ const SignUpScreen = () => {
       if (!result.success) {
         return Alert.alert("Hata", result.error);
       } else {
-        Alert.alert(
-          "Başarılı",
-          "Başarılı bir şekilde kayıt oldunuz. Giriş yapabilirsiniz."
-        );
-        router.back();
+        router.replace("/(auth)/welcome");
       }
     } catch (error) {
       console.error(error);

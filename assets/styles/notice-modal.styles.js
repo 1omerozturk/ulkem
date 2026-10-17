@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
-import { COLORS } from "../../constants/Colors";
+import { COLORS as BASE_COLORS } from "../../constants/Colors";
 
-const styles = StyleSheet.create({
+export const createStyles = (COLORS = BASE_COLORS) => StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
   backdropTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(17, 34, 28, 0.58)" },
   card: {
@@ -67,4 +67,4 @@ const styles = StyleSheet.create({
   confirmText: { color: COLORS.white, fontSize: 14, fontWeight: "900" },
 });
 
-export default styles;
+export default createStyles;

@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
-import { COLORS } from "../../constants/Colors";
+import { COLORS as BASE_COLORS } from "../../constants/Colors";
 
-export default StyleSheet.create({
+export const createStyles = (COLORS = BASE_COLORS) => StyleSheet.create({
   frame: {
     width: "100%",
     height: 205,
@@ -16,3 +16,5 @@ export default StyleSheet.create({
     overflow: "hidden",
   },
 });
+
+export default createStyles;

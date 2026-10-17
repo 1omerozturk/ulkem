@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native'
-import { COLORS } from '../../constants/Colors'
+import { COLORS as BASE_COLORS } from '../../constants/Colors'
 
-const styles = StyleSheet.create({
+export const createStyles = (COLORS = BASE_COLORS) => StyleSheet.create({
   keyboardContainer: {
     flex: 1,
     backgroundColor: COLORS.authBackground,
@@ -167,4 +167,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default styles
+export default createStyles

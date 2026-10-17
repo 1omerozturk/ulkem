@@ -9,7 +9,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { COLORS } from "../constants/Colors";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 type TimerBarProps = {
   duration: number;
@@ -31,6 +31,7 @@ export default function TimerBar({
   const progress = useSharedValue(1);
   const lastResetTrigger = useRef(resetTrigger);
   const isUrgent = remainingSeconds <= 5;
+  const { colors } = useAppTheme();
 
   useEffect(() => {
     cancelAnimation(progress);
@@ -63,13 +64,13 @@ export default function TimerBar({
     backgroundColor: interpolateColor(
       progress.value,
       [0, 0.22, 0.58, 1],
-      [COLORS.authError, "#E6A23A", "#8EAF69", COLORS.authPrimary],
+      [colors.authError, colors.authAccent, colors.authSuccess, colors.authPrimary],
     ),
-  }));
+  }), [colors.authError, colors.authAccent, colors.authSuccess, colors.authPrimary]);
 
   return (
     <View
-      style={styles.panel}
+      style={[styles.panel, { backgroundColor: colors.authSurface, borderColor: colors.authBorder }]}
       accessibilityRole="progressbar"
       accessibilityLabel={`Kalan süre ${remainingSeconds} saniye`}
       accessibilityValue={{ min: 0, max: durationSeconds, now: remainingSeconds }}
@@ -79,17 +80,17 @@ export default function TimerBar({
           <Ionicons
             name="hourglass-outline"
             size={15}
-            color={isUrgent ? COLORS.authError : COLORS.authPrimary}
+            color={isUrgent ? colors.authError : colors.authPrimary}
           />
-          <Text style={styles.label}>SÜRE</Text>
+          <Text style={[styles.label, { color: colors.authTextMuted }]}>SÜRE</Text>
         </View>
-        <View style={[styles.timePill, isUrgent && styles.timePillUrgent]}>
-          <Text style={[styles.timeText, isUrgent && styles.timeTextUrgent]}>
+        <View style={[styles.timePill, { backgroundColor: isUrgent ? `${colors.authError}22` : colors.authPrimarySoft }]}>
+          <Text style={[styles.timeText, { color: isUrgent ? colors.authError : colors.authPrimary }]}>
             {remainingSeconds} sn
           </Text>
         </View>
       </View>
-      <View style={styles.track}>
+      <View style={[styles.track, { backgroundColor: colors.authBorder }]}>
         <Animated.View style={[styles.fill, fillStyle]} />
       </View>
     </View>
@@ -102,9 +103,7 @@ const styles = {
     paddingTop: 9,
     paddingBottom: 10,
     borderRadius: 17,
-    backgroundColor: COLORS.authSurface,
     borderWidth: 1,
-    borderColor: COLORS.authBorder,
   },
   labelRow: {
     flexDirection: "row" as const,
@@ -113,11 +112,9 @@ const styles = {
     marginBottom: 7,
   },
   timerLabel: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6 },
-  label: { color: COLORS.authTextMuted, fontSize: 10, fontWeight: "900" as const, letterSpacing: 1 },
-  timePill: { minWidth: 55, alignItems: "center" as const, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, backgroundColor: COLORS.authPrimarySoft },
-  timePillUrgent: { backgroundColor: "#F9E9E6" },
-  timeText: { color: COLORS.authPrimary, fontSize: 12, fontWeight: "900" as const, fontVariant: ["tabular-nums"] as const },
-  timeTextUrgent: { color: COLORS.authError },
-  track: { height: 8, overflow: "hidden" as const, borderRadius: 4, backgroundColor: COLORS.authBorder },
+  label: { fontSize: 10, fontWeight: "900" as const, letterSpacing: 1 },
+  timePill: { minWidth: 55, alignItems: "center" as const, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10 },
+  timeText: { fontSize: 12, fontWeight: "900" as const, fontVariant: ["tabular-nums"] as const },
+  track: { height: 8, overflow: "hidden" as const, borderRadius: 4 },
   fill: { height: "100%" as const, borderRadius: 4 },
 };

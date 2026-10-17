@@ -2,10 +2,11 @@ import React from "react";
 import { TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { COLORS } from "../constants/Colors";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 export default function BackButton({ onPress, accessibilityLabel = "Geri dön" }) {
   const router = useRouter();
+  const { colors } = useAppTheme();
 
   const handlePress = () => {
     if (onPress) {
@@ -20,13 +21,13 @@ export default function BackButton({ onPress, accessibilityLabel = "Geri dön" }
   return (
     <TouchableOpacity
       activeOpacity={0.75}
-      style={styles.button}
+      style={[styles.button, { backgroundColor: colors.authSurface, borderColor: colors.authBorder }]}
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       hitSlop={6}
     >
-      <Ionicons name="arrow-back" size={22} color={COLORS.authText} />
+      <Ionicons name="arrow-back" size={22} color={colors.authText} />
     </TouchableOpacity>
   );
 }
@@ -42,8 +43,6 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.authSurface,
     borderWidth: 1,
-    borderColor: COLORS.authBorder,
   },
 });

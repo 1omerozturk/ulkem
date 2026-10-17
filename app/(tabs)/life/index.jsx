@@ -3,10 +3,12 @@ import { ScrollView, Text, View } from "react-native";
 import BackButton from "@/components/BackButton";
 import BuyLive from "@/components/BuyLive";
 import LifeTimer from "@/components/LifeTimer";
-import styles from "@/assets/styles/life.styles";
+import createStyles from "@/assets/styles/life.styles";
 import { GAME_RULES } from "@/constants/GameConfig";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 export default function LifeScreen() {
+  const { styles } = useAppTheme(createStyles);
   return (
     <ScrollView
       style={styles.screen}

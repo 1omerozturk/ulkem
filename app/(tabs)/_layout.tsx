@@ -2,9 +2,9 @@ import React from "react";
 import { Text, View } from "react-native";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "@/constants/Colors";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
-function TabIcon({ color, focused, icon, activeIcon, label }) {
+function TabIcon({ color, focused, icon, activeIcon, label, styles }) {
   return (
     <View style={[styles.tabPill, focused && styles.tabPillActive]}>
       <Ionicons
@@ -18,6 +18,7 @@ function TabIcon({ color, focused, icon, activeIcon, label }) {
 }
 
 export default function TabLayout() {
+  const { colors: COLORS, styles } = useAppTheme(createTabStyles);
   return (
     <Tabs
       screenOptions={{
@@ -40,6 +41,7 @@ export default function TabLayout() {
               icon="game-controller-outline"
               activeIcon="game-controller"
               label="Oyna"
+              styles={styles}
             />
           ),
         }}
@@ -54,6 +56,7 @@ export default function TabLayout() {
               icon="person-circle-outline"
               activeIcon="person-circle"
               label="Profil"
+              styles={styles}
             />
           ),
         }}
@@ -67,7 +70,7 @@ export default function TabLayout() {
   );
 }
 
-const styles = {
+const createTabStyles = (COLORS) => ({
   tabBar: {
     height: 60,
     paddingTop: 8,
@@ -105,4 +108,4 @@ const styles = {
     lineHeight: 18,
     fontWeight: "800",
   },
-};
+});

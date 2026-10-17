@@ -11,10 +11,24 @@ export const initDB = async () => {
           password TEXT NOT NULL,
           profile TEXT,
           score INTEGER DEFAULT 0,
+          lifetime_score INTEGER NOT NULL DEFAULT 0,
+          owned_avatars TEXT NOT NULL DEFAULT '["compass"]',
           lives INTEGER DEFAULT 10,
           last_life_update TEXT DEFAULT (datetime('now'))
           )
           `)
+
+    const userColumns = await db.getAllAsync('PRAGMA table_info(users)')
+    if (!userColumns.some((column) => column.name === 'lifetime_score')) {
+      await db.execAsync('ALTER TABLE users ADD COLUMN lifetime_score INTEGER NOT NULL DEFAULT 0')
+    }
+    if (!userColumns.some((column) => column.name === 'owned_avatars')) {
+      await db.execAsync(`ALTER TABLE users ADD COLUMN owned_avatars TEXT NOT NULL DEFAULT '["compass"]'`)
+    }
+    // Bring older accounts forward without counting points that were already spent.
+    await db.runAsync(
+      'UPDATE users SET lifetime_score = COALESCE(score, 0) WHERE lifetime_score < COALESCE(score, 0)',
+    )
 
     await db.execAsync(`
   CREATE TABLE IF NOT EXISTS quiz_data (
@@ -56,7 +70,7 @@ export const deleteDb = async () => {
 
 export const getUser = async (id) => {
   const user = await db.getFirstAsync(
-    'SELECT id, username, score, profile, lives, last_life_update FROM users WHERE id = ? ',
+    'SELECT id, username, score, lifetime_score, owned_avatars, profile, lives, last_life_update FROM users WHERE id = ? ',
     [id],
   )
 
@@ -108,7 +122,7 @@ export const getUserWithPassword = async (username, password) => {
 export const getUserWithQuizData = async (username, password) => {
   // Kullanıcı bilgilerini şifre hariç alıyoruz
   const user = await db.getFirstAsync(
-    'SELECT id, username, profile, score, lives, last_life_update FROM users WHERE username = ? AND password = ?',
+    'SELECT id, username, profile, score, lifetime_score, owned_avatars, lives, last_life_update FROM users WHERE username = ? AND password = ?',
     [username, password],
   )
 
@@ -138,15 +152,51 @@ export const updateUserLives = async (username, lives, last_life_update) => {
   )
 }
 
-export const updateUserLivesToBuy = async (username, lives) => {
-  await db.runAsync('UPDATE users SET lives = ? WHERE username = ?', [
-    lives,
-    username,
-  ])
+export const purchaseUserLife = async (username, cost, maxLives) => {
+  const result = await db.runAsync(
+    'UPDATE users SET lives = lives + 1, score = score - ? WHERE username = ? AND lives < ? AND score >= ?',
+    [cost, username, maxLives, cost],
+  )
+  return result.changes > 0
+}
+
+export const grantUserLife = async (username, maxLives, timestamp) => {
+  const result = await db.runAsync(
+    'UPDATE users SET lives = lives + 1, last_life_update = COALESCE(last_life_update, ?) WHERE username = ? AND lives < ?',
+    [timestamp, username, maxLives],
+  )
+  return result.changes > 0
+}
+
+export const updateUserProfile = async (userId, profile) => {
+  await db.runAsync('UPDATE users SET profile = ? WHERE id = ?', [profile, userId])
+}
+
+export const updateUserAvatarData = async (userId, profile, ownedAvatars) => {
+  await db.runAsync(
+    'UPDATE users SET profile = ?, owned_avatars = ? WHERE id = ?',
+    [profile, JSON.stringify(ownedAvatars), userId],
+  )
+}
+
+export const purchaseUserAvatar = async (userId, profile, cost, ownedAvatars) => {
+  const result = await db.runAsync(
+    'UPDATE users SET profile = ?, score = score - ?, owned_avatars = ? WHERE id = ? AND score >= ?',
+    [profile, cost, JSON.stringify(ownedAvatars), userId, cost],
+  )
+  return result.changes > 0
 }
 
 export const updateUserScore = async (userId, score) => {
   await db.runAsync('UPDATE users SET score = ? WHERE id = ?', [score, userId])
+}
+
+export const addUserBonusScore = async (userId, points) => {
+  const result = await db.runAsync(
+    'UPDATE users SET score = score + ?, lifetime_score = COALESCE(lifetime_score, 0) + ? WHERE id = ?',
+    [points, points, userId],
+  )
+  return result.changes > 0
 }
 
 export const updateUserQuizAndScore = async (
@@ -156,8 +206,12 @@ export const updateUserQuizAndScore = async (
   questionNumber,
   trueNumber,
   falseNumber,
+  earnedScore,
 ) => {
-  await db.runAsync('UPDATE users SET score = ? WHERE id = ?', [score, userId])
+  await db.runAsync(
+    'UPDATE users SET score = ?, lifetime_score = COALESCE(lifetime_score, 0) + ? WHERE id = ?',
+    [score, earnedScore, userId],
+  )
 
   await updateUserQuizData(
     userId,
