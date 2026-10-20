@@ -2,7 +2,7 @@ import createStyles from "@/assets/styles/home.styles";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { BRAND, GAME_RULES } from "@/constants/GameConfig";
 import BrandMark from "@/components/BrandMark";
-import LocalAvatar from "@/components/LocalAvatar"
+import LocalAvatar from "@/components/LocalAvatar";
 import { useAuthStore } from "@/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -103,17 +103,29 @@ export default function HomeScreen() {
         <View style={styles.topBar}>
           <View style={styles.brandLockup}>
             <View style={styles.brandMark}>
-               <LocalAvatar size={44} profile={user?.profile} style={styles.avatar} />
+              <LocalAvatar
+                size={44}
+                profile={user?.profile}
+                style={styles.avatar}
+              />
             </View>
             <View>
-              <Text style={styles.brandName}>{BRAND.name.toLocaleUpperCase("tr-TR")}</Text>
-              <Text style={styles.brandCaption}>{BRAND.tagline.toLocaleUpperCase("tr-TR")}</Text>
+              <Text style={styles.brandName}>
+                {BRAND.name.toLocaleUpperCase("tr-TR")}
+              </Text>
+              <Text style={styles.brandCaption}>
+                {BRAND.tagline.toLocaleUpperCase("tr-TR")}
+              </Text>
             </View>
           </View>
 
           <TouchableOpacity
             style={styles.livesChip}
-            onPress={() => router.push("/life")}
+            onPress={() => {
+              if (lives != GAME_RULES.maxLives) {
+                router.push("/life");
+              }
+            }}
             activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityLabel={`${lives} canın var. Canlarını yönet`}
@@ -121,12 +133,14 @@ export default function HomeScreen() {
             <Ionicons name="heart" size={18} color={COLORS.authError} />
             <Text style={styles.livesChipValue}>{lives}</Text>
             <Text style={styles.livesChipLimit}>/{GAME_RULES.maxLives}</Text>
-            <Ionicons
-              name="add-circle"
-              size={18}
-              color={COLORS.authPrimary}
-              style={styles.livesChipAction}
-            />
+            {lives != GAME_RULES.maxLives && (
+              <Ionicons
+                name="add-circle"
+                size={18}
+                color={COLORS.authPrimary}
+                style={styles.livesChipAction}
+              />
+            )}
           </TouchableOpacity>
         </View>
 

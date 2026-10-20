@@ -1,5 +1,5 @@
 export const WORLD_CONTINENTS = Object.freeze([
-  { code: "all", name: "Tüm dünya" },
+  { code: "all", name: "Dünya" },
   { code: "AF", name: "Afrika" },
   { code: "AS", name: "Asya" },
   { code: "EU", name: "Avrupa" },

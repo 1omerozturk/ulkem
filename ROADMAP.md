@@ -1,5 +1,7 @@
 # YurtPusula — Proje Yol Haritası
 
+`eas build --platform android --profile preview `
+
 > Bu belge mevcut depo ve çalışma ağacı incelenerek hazırlandı. “Tamamlandı” kodda bulunan parçaları ifade eder; cihaz üzerinde uçtan uca çalıştığı doğrulanmış anlamına gelmez.
 
 ## Proje özeti

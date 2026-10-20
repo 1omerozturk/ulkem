@@ -1,6 +1,9 @@
 import { GAME_RULES } from "../constants/GameConfig";
 import { getContinentName } from "../model/world/continents";
-import { getTurkishCapitalName, getTurkishCountryName } from "../model/world/names";
+import {
+  getTurkishCapitalName,
+  getTurkishCountryName,
+} from "../model/world/names";
 
 type Province = {
   id: number;
@@ -19,7 +22,8 @@ const mapProvinces = require("../assets/maps/turkeyProvinces.json") as {
   name: string;
   paths: string[];
 }[];
-const worldCountries = require("../model/world/countries.json") as WorldCountry[];
+const worldCountries =
+  require("../model/world/countries.json") as WorldCountry[];
 const worldMapShapes = require("../assets/maps/worldCountries.json") as {
   id: string;
   continent: string;
@@ -45,7 +49,7 @@ type QuizQuestion = {
   map?: { mapId: string; highlightedId: string };
 };
 
-const shuffle = <T,>(values: T[]): T[] => {
+const shuffle = <T>(values: T[]): T[] => {
   const result = [...values];
   for (let index = result.length - 1; index > 0; index -= 1) {
     const randomIndex = Math.floor(Math.random() * (index + 1));
@@ -54,7 +58,7 @@ const shuffle = <T,>(values: T[]): T[] => {
   return result;
 };
 
-const sample = <T,>(values: T[], size: number): T[] =>
+const sample = <T>(values: T[], size: number): T[] =>
   shuffle(values).slice(0, size);
 
 const makeQuestion = (
@@ -78,8 +82,10 @@ const makeQuestion = (
   };
 };
 
-const getCountryName = (country: WorldCountry) => getTurkishCountryName(country);
-const getCapitalName = (country: WorldCountry) => getTurkishCapitalName(country);
+const getCountryName = (country: WorldCountry) =>
+  getTurkishCountryName(country);
+const getCapitalName = (country: WorldCountry) =>
+  getTurkishCapitalName(country);
 const getCountries = (continentCode = "all") =>
   worldCountries.filter(
     (country) => continentCode === "all" || country.continent === continentCode,
@@ -87,7 +93,9 @@ const getCountries = (continentCode = "all") =>
 
 async function createRegionQuestions(size: number): Promise<QuizQuestion[]> {
   const validProvinces = provinces.filter((province) => province.region?.tr);
-  const regions = [...new Set(validProvinces.map((province) => province.region!.tr!))];
+  const regions = [
+    ...new Set(validProvinces.map((province) => province.region!.tr!)),
+  ];
   if (regions.length < 4) {
     throw new Error("Bölge quizini hazırlamak için yeterli veri bulunamadı.");
   }
@@ -95,7 +103,10 @@ async function createRegionQuestions(size: number): Promise<QuizQuestion[]> {
   return sample(validProvinces, size).map((province, index) => {
     const region = province.region!.tr!;
     if (index % 2 === 0) {
-      const otherRegions = sample(regions.filter((item) => item !== region), 3);
+      const otherRegions = sample(
+        regions.filter((item) => item !== region),
+        3,
+      );
       return makeQuestion(
         `${province.name} hangi bölgemizdedir?`,
         [region, ...otherRegions],
@@ -130,7 +141,9 @@ async function createRegionQuestions(size: number): Promise<QuizQuestion[]> {
 
 async function createPlateQuestions(size: number): Promise<QuizQuestion[]> {
   if (provinces.length < 4) {
-    throw new Error("Plaka quizini hazırlamak için yeterli il verisi bulunamadı.");
+    throw new Error(
+      "Plaka quizini hazırlamak için yeterli il verisi bulunamadı.",
+    );
   }
 
   return sample(provinces, size).map((province) => {
@@ -214,11 +227,17 @@ async function createDistrictQuestions(size: number): Promise<QuizQuestion[]> {
   return selected;
 }
 
-async function createMetropolitanQuestions(size: number): Promise<QuizQuestion[]> {
+async function createMetropolitanQuestions(
+  size: number,
+): Promise<QuizQuestion[]> {
   const metropolitan = provinces.filter((province) => province.isMetropolitan);
-  const otherProvinces = provinces.filter((province) => !province.isMetropolitan);
+  const otherProvinces = provinces.filter(
+    (province) => !province.isMetropolitan,
+  );
   if (metropolitan.length < 3 || otherProvinces.length < 3) {
-    throw new Error("Büyükşehir quizini hazırlamak için yeterli veri bulunamadı.");
+    throw new Error(
+      "Büyükşehir quizini hazırlamak için yeterli veri bulunamadı.",
+    );
   }
 
   const questions: QuizQuestion[] = [];
@@ -245,14 +264,19 @@ async function createMetropolitanQuestions(size: number): Promise<QuizQuestion[]
 }
 
 export const quizService = {
-  generateRegionQuestions: (size = GAME_RULES.questionsPerQuiz) => createRegionQuestions(size),
-  generatePlateQuestions: (size = GAME_RULES.questionsPerQuiz) => createPlateQuestions(size),
-  generateDistrictQuestions: (size = GAME_RULES.questionsPerQuiz) => createDistrictQuestions(size),
+  generateRegionQuestions: (size = GAME_RULES.questionsPerQuiz) =>
+    createRegionQuestions(size),
+  generatePlateQuestions: (size = GAME_RULES.questionsPerQuiz) =>
+    createPlateQuestions(size),
+  generateDistrictQuestions: (size = GAME_RULES.questionsPerQuiz) =>
+    createDistrictQuestions(size),
   generateMetropolitanQuestions: (size = GAME_RULES.questionsPerQuiz) =>
     createMetropolitanQuestions(size),
   generateMapProvinceQuestions: async (size = GAME_RULES.questionsPerQuiz) => {
     const available = provinces.filter((province) =>
-      mapProvinces.some((shape) => shape.id === province.id && shape.paths.length),
+      mapProvinces.some(
+        (shape) => shape.id === province.id && shape.paths.length,
+      ),
     );
     const selected = sample(available, size);
     return selected.map((province) => {
@@ -271,7 +295,10 @@ export const quizService = {
     });
   },
 
-  generateCountryCapitalQuestions: (size = GAME_RULES.questionsPerQuiz, continentCode = "all") => {
+  generateCountryCapitalQuestions: (
+    size = GAME_RULES.questionsPerQuiz,
+    continentCode = "all",
+  ) => {
     const validCountries = getCountries(continentCode);
     const uniqueCountries = [
       ...new Map(
@@ -279,7 +306,9 @@ export const quizService = {
       ).values(),
     ];
     if (uniqueCountries.length < size || uniqueCountries.length < 4) {
-      throw new Error("Bu kıtada başkent quizini hazırlamak için yeterli ülke yok.");
+      throw new Error(
+        "Bu kıtada başkent quizini hazırlamak için yeterli ülke yok.",
+      );
     }
     const selected = sample(uniqueCountries, size);
     return selected.map((country) => {
@@ -297,14 +326,22 @@ export const quizService = {
     });
   },
 
-  generateCountryCityQuestions: (size = GAME_RULES.questionsPerQuiz, continentCode = "all") => {
+  generateCountryCityQuestions: (
+    size = GAME_RULES.questionsPerQuiz,
+    continentCode = "all",
+  ) => {
     const uniqueCapitals = [
       ...new Map(
-        getCountries(continentCode).map((country) => [getCapitalName(country), country]),
+        getCountries(continentCode).map((country) => [
+          getCapitalName(country),
+          country,
+        ]),
       ).values(),
     ];
     if (uniqueCapitals.length < size || uniqueCapitals.length < 4) {
-      throw new Error("Bu kıta için şehir quizini hazırlayacak yeterli veri bulunamadı.");
+      throw new Error(
+        "Bu kıta için şehir quizini hazırlayacak yeterli veri bulunamadı.",
+      );
     }
 
     return sample(uniqueCapitals, size).map((country) => {
@@ -323,14 +360,25 @@ export const quizService = {
     });
   },
 
-  generateCountryContinentQuestions: (size = GAME_RULES.questionsPerQuiz, continentCode = "all") => {
+  generateCountryContinentQuestions: (
+    size = GAME_RULES.questionsPerQuiz,
+    continentCode = "all",
+  ) => {
     const validCountries = getCountries();
     if (continentCode !== "all") {
       const correctPool = getCountries(continentCode);
-      const distractorPool = validCountries.filter((country) => country.continent !== continentCode);
+      const distractorPool = validCountries.filter(
+        (country) => country.continent !== continentCode,
+      );
       const continentName = getContinentName(continentCode);
-      if (correctPool.length < size || distractorPool.length < 3 || !continentName) {
-        throw new Error("Bu kıta quizini hazırlamak için yeterli ülke verisi yok.");
+      if (
+        correctPool.length < size ||
+        distractorPool.length < 3 ||
+        !continentName
+      ) {
+        throw new Error(
+          "Bu kıta quizini hazırlamak için yeterli ülke verisi yok.",
+        );
       }
       return sample(correctPool, size).map((country) => {
         const answer = getCountryName(country);
@@ -343,11 +391,16 @@ export const quizService = {
       });
     }
 
-    const continents = [...new Set(validCountries.map((item) => item.continent))];
+    const continents = [
+      ...new Set(validCountries.map((item) => item.continent)),
+    ];
     const selected = sample(validCountries, size);
     return selected.map((country) => {
       const continent = country.continent;
-      const wrong = sample(continents.filter((item) => item !== continent), 3).map(getContinentName);
+      const wrong = sample(
+        continents.filter((item) => item !== continent),
+        3,
+      ).map(getContinentName);
       const answer = getContinentName(continent);
       return makeQuestion(
         `${getCountryName(country)} hangi kıtada yer alır?`,
@@ -357,10 +410,15 @@ export const quizService = {
     });
   },
 
-  generateCountryFlagQuestions: (size = GAME_RULES.questionsPerQuiz, continentCode = "all") => {
+  generateCountryFlagQuestions: (
+    size = GAME_RULES.questionsPerQuiz,
+    continentCode = "all",
+  ) => {
     const validCountries = getCountries(continentCode);
     if (validCountries.length < size || validCountries.length < 4) {
-      throw new Error("Bu kıtada bayrak quizini hazırlamak için yeterli ülke yok.");
+      throw new Error(
+        "Bu kıtada bayrak quizini hazırlamak için yeterli ülke yok.",
+      );
     }
     const selected = sample(validCountries, size);
     return selected.map((country) => {
@@ -370,29 +428,46 @@ export const quizService = {
         3,
       ).map(getCountryName);
       return {
-        ...makeQuestion("Bu bayrak hangi ülkeye aittir?", [name, ...wrong], name),
+        ...makeQuestion(
+          "Bu bayrak hangi ülkeye aittir?",
+          [name, ...wrong],
+          name,
+        ),
         visual: { type: "flag", key: country.code },
       };
     });
   },
 
-  generateMapCountryQuestions: (size = GAME_RULES.questionsPerQuiz, continentCode = "all") => {
+  generateMapCountryQuestions: (
+    size = GAME_RULES.questionsPerQuiz,
+    continentCode = "all",
+  ) => {
     const mappedCodes = new Set(worldMapShapes.map(({ id }) => id));
-    const mappedCountries = getCountries(continentCode).filter((country) => mappedCodes.has(country.code));
+    const mappedCountries = getCountries(continentCode).filter((country) =>
+      mappedCodes.has(country.code),
+    );
     if (mappedCountries.length < 4) {
-      throw new Error("Bu kıtada harita quizini hazırlamak için yeterli ülke verisi yok.");
+      throw new Error(
+        "Bu kıtada harita quizini hazırlamak için yeterli ülke verisi yok.",
+      );
     }
 
-    return sample(mappedCountries, Math.min(size, mappedCountries.length)).map((country) => {
-      const answer = getCountryName(country);
-      const wrong = sample(
-        mappedCountries.filter((item) => item.code !== country.code),
-        3,
-      ).map(getCountryName);
-      return {
-        ...makeQuestion("Haritada işaretli ülke hangisidir?", [answer, ...wrong], answer),
-        map: { mapId: "world", highlightedId: country.code },
-      };
-    });
+    return sample(mappedCountries, Math.min(size, mappedCountries.length)).map(
+      (country) => {
+        const answer = getCountryName(country);
+        const wrong = sample(
+          mappedCountries.filter((item) => item.code !== country.code),
+          3,
+        ).map(getCountryName);
+        return {
+          ...makeQuestion(
+            "Haritada işaretli ülke hangisidir?",
+            [answer, ...wrong],
+            answer,
+          ),
+          map: { mapId: "world", highlightedId: country.code },
+        };
+      },
+    );
   },
 };
